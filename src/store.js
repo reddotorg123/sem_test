@@ -58,35 +58,46 @@ export const useAppStore = create(
 
             // --- AUTH & TEAM IDENTITY ---
             // Stores the current Firebase User object
-            user: JSON.parse(localStorage.getItem('reddot_user') || 'null'),
-            userRole: localStorage.getItem('reddot_user_role') || null, // 'admin', 'event_manager', 'member'
-            teamId: localStorage.getItem('reddot_team_id') || null,
+            user: JSON.parse(localStorage.getItem('sem_user') || 'null'),
+            userRole: localStorage.getItem('sem_user_role') || null, // 'admin', 'event_manager', 'member'
+            teamId: localStorage.getItem('sem_team_id') || null,
+            userProfile: JSON.parse(localStorage.getItem('sem_user_profile') || 'null'),
 
             setUser: (user) => {
                 if (user) {
-                    localStorage.setItem('reddot_user', JSON.stringify(user));
+                    localStorage.setItem('sem_user', JSON.stringify(user));
                 } else {
-                    localStorage.removeItem('reddot_user');
-                    localStorage.removeItem('reddot_user_role'); // Clear role on logout
-                    localStorage.removeItem('reddot_team_id');
+                    localStorage.removeItem('sem_user');
+                    localStorage.removeItem('sem_user_role'); // Clear role on logout
+                    localStorage.removeItem('sem_team_id');
+                    localStorage.removeItem('sem_user_profile');
                 }
-                set({ user, userRole: user ? get().userRole : null, teamId: user ? get().teamId : null });
+                set({ user, userRole: user ? get().userRole : null, teamId: user ? get().teamId : null, userProfile: user ? get().userProfile : null });
+            },
+
+            setUserProfile: (profile) => {
+                if (profile) {
+                    localStorage.setItem('sem_user_profile', JSON.stringify(profile));
+                } else {
+                    localStorage.removeItem('sem_user_profile');
+                }
+                set({ userProfile: profile });
             },
 
             setUserRole: (role) => {
                 if (role) {
-                    localStorage.setItem('reddot_user_role', role);
+                    localStorage.setItem('sem_user_role', role);
                 } else {
-                    localStorage.removeItem('reddot_user_role');
+                    localStorage.removeItem('sem_user_role');
                 }
                 set({ userRole: role });
             },
 
             setTeamId: (teamId) => {
                 if (teamId) {
-                    localStorage.setItem('reddot_team_id', teamId);
+                    localStorage.setItem('sem_team_id', teamId);
                 } else {
-                    localStorage.removeItem('reddot_team_id');
+                    localStorage.removeItem('sem_team_id');
                 }
                 set({ teamId });
             },
@@ -123,7 +134,8 @@ export const useAppStore = create(
                 payment: false,
                 teamInvite: false,
                 feedback: false,
-                legal: false
+                legal: false,
+                profile: false
             },
             openModal: (modalName) => set((state) => ({
                 modals: { ...state.modals, [modalName]: true }
@@ -139,7 +151,9 @@ export const useAppStore = create(
                 compactView: false,
                 isDeleteLocked: false,
                 pinnedEvents: [],
-                expandedCards: true
+                expandedCards: true,
+                deadlineReminderDays: [7, 3, 1, 0],
+                eventReminderDays: [1]
             },
             updatePreferences: (prefs) => set((state) => ({
                 preferences: { ...state.preferences, ...prefs }

@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useAppStore } from '../store';
 import { importCSV } from '../csvUtils';
-import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, FileUp, Info, Database, ArrowRight, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../utils';
 
 const ImportCSVModal = () => {
     const modals = useAppStore((state) => state.modals);
@@ -15,34 +17,29 @@ const ImportCSVModal = () => {
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
-        if (selectedFile && selectedFile.type === 'text/csv') {
+        if (selectedFile && (selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv'))) {
             setFile(selectedFile);
             setResult(null);
         } else {
-            alert('Please select a valid CSV file');
+            setResult({ success: false, error: 'INVALID_FILE_TYPE: Please select a verified CSV file node.' });
         }
     };
 
     const handleImport = async () => {
         if (!file) return;
-
         setIsImporting(true);
-
         try {
             const importResult = await importCSV(file);
             setResult(importResult);
-
             if (importResult.success) {
+                // Success feedback duration
                 setTimeout(() => {
                     handleClose();
-                }, 2000);
+                }, 3000);
             }
         } catch (error) {
-            console.error('Import error:', error);
-            setResult({
-                success: false,
-                error: error.message
-            });
+            console.error('Injection error:', error);
+            setResult({ success: false, error: error.message });
         } finally {
             setIsImporting(false);
         }
@@ -57,137 +54,179 @@ const ImportCSVModal = () => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                {/* Backdrop */}
-                <div
-                    className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-                    onClick={handleClose}
-                ></div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
+                onClick={handleClose}
+            />
 
-                {/* Modal */}
-                <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                            Import from CSV
-                        </h3>
-                        <button
-                            onClick={handleClose}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                        >
-                            <X size={20} />
-                        </button>
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col"
+            >
+                {/* Header Subsystem */}
+                <div className="bg-slate-950 p-6 sm:p-8 text-white flex items-center justify-between border-b border-white/10 relative">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-500/20 border border-white/10">
+                            <FileUp size={24} strokeWidth={3} className="text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-black tracking-tight leading-none mb-1">Data <span className="text-indigo-400">Injection</span></h2>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CSV Node Import Portal</p>
+                        </div>
                     </div>
+                    <button onClick={handleClose} className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 transition-all border border-white/5">
+                        <X size={20} />
+                    </button>
+                    {/* Animated Pulse */}
+                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
+                </div>
 
-                    {/* Content */}
-                    <div className="px-6 py-6">
+                <div className="p-6 sm:p-10">
+                    <AnimatePresence mode="wait">
                         {!result ? (
-                            <>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                    Upload a CSV file exported from Excel or Google Sheets. The system will automatically detect and map columns.
-                                </p>
-
-                                <div className="mb-4">
-                                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Expected Columns:</h4>
-                                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                        <p>• College Name, Event Name, Event Type</p>
-                                        <p>• Registration Deadline, Start Date, End Date</p>
-                                        <p>• Prize, Fee, Location, Contact, etc.</p>
+                            <motion.div 
+                                key="upload"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-8"
+                            >
+                                <div className="p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <Info size={16} className="text-indigo-500" />
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Protocol Requirements</h4>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                                        Upload a CSV file containing event nodes. The intelligence matrix will auto-align columns for College, Event, Dates, and Prize information.
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                                        {['College Name', 'Event Name', 'Prize Amount', 'Deadlines'].map(item => (
+                                            <div key={item} className="flex items-center gap-2 text-[9px] font-black uppercase text-indigo-500">
+                                                <div className="w-1 h-1 rounded-full bg-indigo-500" /> {item}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {/* File Upload */}
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary-500 transition-colors"
-                                >
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept=".csv"
-                                        onChange={handleFileChange}
-                                        className="hidden"
-                                    />
-
-                                    {file ? (
-                                        <div className="flex flex-col items-center">
-                                            <FileSpreadsheet size={48} className="text-green-500 mb-3" />
-                                            <p className="text-gray-900 dark:text-white font-medium">{file.name}</p>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {(file.size / 1024).toFixed(2)} KB
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center">
-                                            <Upload size={48} className="text-gray-400 mb-3" />
-                                            <p className="text-gray-900 dark:text-white font-medium mb-1">
-                                                Click to upload CSV file
-                                            </p>
-                                            <p className="text-sm text-gray-500">
-                                                or drag and drop
-                                            </p>
-                                        </div>
+                                    className={cn(
+                                        "group relative border-4 border-dashed rounded-[2rem] p-10 text-center cursor-pointer transition-all duration-500 overflow-hidden",
+                                        file 
+                                            ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/20" 
+                                            : "border-slate-100 dark:border-slate-800 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                     )}
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-center py-6">
-                                {result.success ? (
-                                    <>
-                                        <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
-                                        <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                                            Import Successful!
-                                        </h4>
-                                        <div className="flex justify-center gap-6 mt-4">
-                                            <div className="text-center">
-                                                <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{result.count.added}</p>
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">New Added</p>
+                                >
+                                    <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+                                    
+                                    <div className="relative z-10">
+                                        {file ? (
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-20 h-20 rounded-3xl bg-indigo-600 text-white flex items-center justify-center shadow-2xl mb-6 transform group-hover:scale-110 transition-transform">
+                                                    <FileSpreadsheet size={32} strokeWidth={3} />
+                                                </div>
+                                                <p className="text-lg font-black text-slate-900 dark:text-white mb-1 uppercase tracking-tight">{file.name}</p>
+                                                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-100 dark:bg-indigo-900/50 px-3 py-1 rounded-full">
+                                                    Ready for Injection: {(file.size / 1024).toFixed(1)} KB
+                                                </p>
                                             </div>
-                                            <div className="text-center">
-                                                <p className="text-2xl font-black text-violet-600 dark:text-violet-400">{result.count.updated}</p>
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Updated</p>
+                                        ) : (
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-20 h-20 rounded-3xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500">
+                                                    <Upload size={32} strokeWidth={3} />
+                                                </div>
+                                                <p className="text-sm font-black text-slate-900 dark:text-white mb-1 uppercase tracking-widest">Transmit CSV Data Packet</p>
+                                                <p className="text-xs font-bold text-slate-400">Click to browse or drop file here</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Grid Pattern BG */}
+                                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                key="result"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="text-center py-8"
+                            >
+                                {result.success ? (
+                                    <div className="space-y-8">
+                                        <div className="w-24 h-24 rounded-[2rem] bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/30">
+                                            <CheckCircle size={48} strokeWidth={3} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Injection Successful</h4>
+                                            <p className="text-slate-500 font-bold">Data stream merged with local database grid.</p>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                                            <div className="p-6 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl">
+                                                <p className="text-3xl font-black text-indigo-600 mb-1">{result.count.added}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">New Nodes</p>
+                                            </div>
+                                            <div className="p-6 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl">
+                                                <p className="text-3xl font-black text-violet-600 mb-1">{result.count.updated}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Updated</p>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
-                                            {result.count.added + result.count.updated} total events processed
-                                        </p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AlertCircle size={64} className="text-red-500 mx-auto mb-4" />
-                                        <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                                            Import Failed
-                                        </h4>
-                                        <p className="text-gray-600 dark:text-gray-400">
-                                            {result.error}
-                                        </p>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
 
-                    {/* Actions */}
-                    {!result && (
-                        <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900">
-                            <button
-                                onClick={handleClose}
-                                className="btn btn-outline"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleImport}
-                                disabled={!file || isImporting}
-                                className="btn btn-primary"
-                            >
-                                {isImporting ? 'Importing...' : 'Import Events'}
-                            </button>
-                        </div>
-                    )}
+                                        <div className="inline-flex items-center gap-3 px-6 py-3 bg-emerald-50 text-emerald-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                            <Database size={14} /> Total Records Processed: {result.count.added + result.count.updated}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="w-24 h-24 rounded-[2rem] bg-rose-500 text-white flex items-center justify-center mx-auto shadow-2xl shadow-rose-500/30">
+                                            <AlertCircle size={48} strokeWidth={3} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Injection Failure</h4>
+                                            <p className="text-rose-500 font-bold uppercase text-[10px] tracking-widest mb-4">Error Code: PARSE_EX_V1</p>
+                                            <div className="p-4 bg-rose-50 dark:bg-rose-950/20 rounded-2xl border border-rose-100 dark:border-rose-900/50">
+                                                <p className="text-sm font-bold text-rose-600 dark:text-rose-400">{result.error}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setResult(null)} className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 transition-colors">Abort and Retry</button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-            </div>
+
+                {/* Footer Actions Subsystem */}
+                {!result && (
+                    <div className="p-8 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+                        <button onClick={handleClose} className="px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all">Cancel Mission</button>
+                        <button
+                            onClick={handleImport}
+                            disabled={!file || isImporting}
+                            className="flex-1 max-w-[240px] h-16 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3 group"
+                        >
+                            {isImporting ? (
+                                <>
+                                    <div className="w-5 h-5 border-4 border-slate-400 border-t-indigo-500 rounded-full animate-spin" />
+                                    Injecting...
+                                </>
+                            ) : (
+                                <>
+                                    Execute Batch Import
+                                    <ArrowRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
+            </motion.div>
         </div>
     );
 };

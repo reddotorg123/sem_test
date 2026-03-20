@@ -185,31 +185,39 @@ export const calculatePriorityScore = (event) => {
     // 1. Prize to Fee Ratio (Valuable events score higher)
     const prize = parseFloat(event.prizeAmount) || 0;
     const fee = parseFloat(event.registrationFee) || 0;
-    if (fee === 0 && prize > 0) score += 30;
+    if (fee === 0 && prize > 0) score += 40; // Free events with prizes are highly valuable
     else if (fee > 0) {
         const ratio = prize / fee;
-        if (ratio >= 10) score += 30;
+        if (ratio >= 20) score += 40;
+        else if (ratio >= 10) score += 30;
         else if (ratio >= 5) score += 20;
         else if (ratio >= 2) score += 10;
+        else if (ratio >= 1) score += 5;
     }
 
     // 2. Event Type Weights
     const typeScores = {
-        [EventType.HACKATHON]: 20,
-        [EventType.PROJECT_EXPO]: 18,
-        [EventType.CONTEST]: 18,
+        [EventType.HACKATHON]: 25,
+        [EventType.PROJECT_EXPO]: 20,
+        [EventType.CONTEST]: 20,
         [EventType.PAPER_PRESENTATION]: 15,
-        [EventType.WORKSHOP]: 12,
+        [EventType.WORKSHOP]: 10,
         [EventType.CONFERENCE]: 10,
-        [EventType.SEMINAR]: 8,
+        [EventType.SEMINAR]: 5,
         [EventType.OTHER]: 5
     };
     score += typeScores[event.eventType] || 5;
 
     // 3. Urgency (closer deadlines get higher priority naturally)
     const daysRemaining = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
-    if (daysRemaining <= 2) score += 25;
-    else if (daysRemaining <= 7) score += 20;
+    if (daysRemaining < 0) score = 0; // Expired
+    else if (daysRemaining <= 1) score += 30;
+    else if (daysRemaining <= 3) score += 20;
+    else if (daysRemaining <= 7) score += 10;
+
+    // 4. Team Bonus (Individual or small team events often easier to enter)
+    const tSize = parseInt(event.teamSize) || 1;
+    if (tSize === 1) score += 5;
 
     return Math.min(100, Math.max(0, score));
 };
@@ -384,13 +392,34 @@ export const bulkImportEvents = async (eventsArray, overwrite = false) => {
  */
 export const updateAllEventStatuses = async () => {
     const events = await db.events.toArray();
+    const state = useAppStore.getState();
+    const isCloud = state.cloudProvider === 'firestore';
+
     for (const event of events) {
         // Skip manual statuses
         if (MANUAL_STATUSES.includes(event.status)) continue;
 
         const newStatus = calculateStatus(event.registrationDeadline, event.startDate, event.endDate);
-        if (newStatus !== event.status) {
-            await db.events.update(event.id, { status: newStatus });
+        const newScore = calculatePriorityScore(event);
+
+        if (newStatus !== event.status || newScore !== event.priorityScore) {
+            const updates = { 
+                status: newStatus, 
+                priorityScore: newScore,
+                updatedAt: new Date() 
+            };
+            
+            await db.events.update(event.id, updates);
+            
+            // Sync to Cloud if applicable
+            if (isCloud) {
+                try {
+                    const updatedEvent = { ...event, ...updates };
+                    await saveEventToFirestore(updatedEvent);
+                } catch (e) {
+                    console.error('[System Sync] Background status update failed to sync:', e);
+                }
+            }
         }
     }
 };
@@ -398,6 +427,10 @@ export const updateAllEventStatuses = async () => {
 /**
  * UTILITY: Export all events from the local database.
  */
+export const getAllEvents = async () => {
+    return await db.events.toArray();
+};
+
 export const exportEventsToCSV = async () => {
     return await db.events.toArray();
 };

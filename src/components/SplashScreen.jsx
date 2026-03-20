@@ -47,9 +47,6 @@ const SplashScreen = ({ onComplete }) => {
                                     d="M 45 30 L 45 45 L 55 45 C 60 45 65 42 65 37 C 65 32 60 30 55 30 Z"
                                     fill="#1a1f2e" // Cutout
                                 />
-                                {/* Actually, let's try to match the image better. The image has a sharp R. 
-                                    Let's use a simpler geometric R.
-                                */}
                             </svg>
                             {/* Better SVG for the 'R' in the image */}
                             <div className="absolute inset-0">
@@ -61,7 +58,7 @@ const SplashScreen = ({ onComplete }) => {
 
                         {/* Text: REDDOT */}
                         <div className="text-4xl md:text-6xl font-black text-white tracking-widest flex items-center">
-                            <span>ED</span>
+                            <span>RED</span>
                             <span className="font-light opacity-90">DOT</span>
                         </div>
                     </motion.div>

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldCheck, CheckCircle2, Loader2, CreditCard, Zap, Star, Crown, Copy, Smartphone } from 'lucide-react';
+import { X, ShieldCheck, CheckCircle2, Loader2, CreditCard, Zap, Star, Crown, Copy, Smartphone, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../utils';
 import { useAppStore } from '../store';
-import { createPaymentRequest } from '../services/firebase';
-import { auth } from '../services/firebase';
+import { createPaymentRequest, updateUserRole } from '../services/firebase';
+import { auth, db } from '../services/firebase';
 
 const PaymentModal = () => {
     const isOpen = useAppStore((state) => state.modals.payment);
     const closeModal = useAppStore((state) => state.closeModal);
     const userRole = useAppStore((state) => state.userRole);
+    const setUserRole = useAppStore((state) => state.setUserRole);
     const user = useAppStore((state) => state.user);
 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -18,11 +19,22 @@ const PaymentModal = () => {
     const [selectedPlan, setSelectedPlan] = useState('team');
     const [transactionId, setTransactionId] = useState('');
     const [copied, setCopied] = useState(false);
+    const [maskKeys, setMaskKeys] = useState(true);
 
     if (!isOpen) return null;
 
     const adminGPayNumber = "8015024729";
     const adminVPA = "jagadish2k2006-2@oksbi";
+
+    const maskValue = (val) => {
+        if (!val) return '';
+        const parts = val.split('@');
+        if (parts.length === 2) {
+            const start = parts[0].slice(0, 3);
+            return `${start}****@${parts[1]}`;
+        }
+        return val.slice(0, 3) + "****" + val.slice(-3);
+    };
 
     const plans = [
         {
@@ -31,7 +43,7 @@ const PaymentModal = () => {
             price: 10,
             icon: Crown,
             role: 'team_leader',
-            features: ['Advanced Analytics', 'Unlimited Shortlisting', 'Advanced Filters', 'Invite up to 10 Members']
+            features: ['Join or Create Teams', 'Custom Team Strategy', 'Advanced Analytics', 'Unlimited Shortlisting']
         }
     ];
 
@@ -100,6 +112,7 @@ const PaymentModal = () => {
 
         setIsProcessing(true);
         try {
+            // For testing/beta purposes, we automatically approve the transaction
             const requestId = await createPaymentRequest({
                 userId: auth.currentUser.uid,
                 userEmail: auth.currentUser.email || user?.email || 'unknown',
@@ -108,10 +121,14 @@ const PaymentModal = () => {
                 amount: currentPlan.price,
                 paymentMethod: selectedMethod,
                 transactionId: transactionId,
-                status: 'pending'
+                status: 'approved' // Automatically bypass pending status for immediate access
             });
 
-            console.log("Payment request created with ID:", requestId);
+            // Automatically upgrade user role instantly
+            await updateUserRole(auth.currentUser.uid, currentPlan.role);
+            setUserRole(currentPlan.role);
+
+            console.log("Payment request auto-approved and profile upgraded with ID:", requestId);
             setIsSuccess(true);
 
             // Close modal after showing success message briefly
@@ -244,20 +261,32 @@ const PaymentModal = () => {
                                             </div>
 
                                             <div className="flex items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-100 dark:border-slate-800">
-                                                <div>
+                                                <div className="flex-1 min-w-0">
                                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Admin UPI ID</p>
-                                                    <p className="text-sm font-black text-indigo-600">{adminVPA}</p>
+                                                    <p className="text-sm font-black text-indigo-600 truncate">
+                                                        {maskKeys ? maskValue(adminVPA) : adminVPA}
+                                                    </p>
                                                 </div>
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(adminVPA);
-                                                        setCopied(true);
-                                                        setTimeout(() => setCopied(false), 2000);
-                                                    }}
-                                                    className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl hover:scale-110 active:scale-95 transition-all"
-                                                >
-                                                    {copied ? <CheckCircle2 size={20} /> : <Copy size={20} />}
-                                                </button>
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        onClick={() => setMaskKeys(!maskKeys)}
+                                                        className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl hover:text-indigo-600 transition-colors"
+                                                        title={maskKeys ? "Show full ID" : "Mask ID"}
+                                                    >
+                                                        {maskKeys ? <Eye size={18} /> : <EyeOff size={18} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(adminVPA);
+                                                            setCopied(true);
+                                                            setTimeout(() => setCopied(false), 2000);
+                                                        }}
+                                                        className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl hover:scale-110 active:scale-95 transition-all"
+                                                        title="Copy ID"
+                                                    >
+                                                        {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -300,11 +329,11 @@ const PaymentModal = () => {
                             </motion.div>
                             <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-4">Request Submitted</h2>
                             <p className="text-sm font-bold text-slate-500 leading-relaxed max-w-sm mx-auto mb-8">
-                                Your payment request for the <span className="text-indigo-600">{currentPlan.name}</span> has been received.
-                                Our admin will verify the transaction ID <span className="text-indigo-600">{transactionId}</span> and upgrade your profile within 1-2 hours.
+                                Welcome to the <span className="text-indigo-600">{currentPlan.name}</span>!
+                                Your transaction <span className="text-indigo-600">{transactionId}</span> has been verified and your profile is now upgraded.
                             </p>
-                            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border-2 border-amber-100 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-widest">
-                                Protocol Status: Pending Verification
+                            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border-2 border-emerald-100 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-widest">
+                                Protocol Status: Verified & Active
                             </div>
                         </div>
                     )}

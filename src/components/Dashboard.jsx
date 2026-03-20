@@ -1,141 +1,141 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../db';
 import { useAppStore } from '../store';
 import EventCard from './EventCard';
-import { TrendingUp, Calendar, Clock, Trophy, Plus, FileUp, Zap, Sparkles, Shield, Bell, Target, ArrowRight } from 'lucide-react';
-import { format, isToday, isThisWeek, differenceInDays, startOfDay } from 'date-fns';
+import { TrendingUp, Calendar, Clock, Trophy, Plus, FileUp, Zap, Sparkles, Shield, Bell, Target, ArrowRight, Users, User } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { format, isToday, isThisWeek, differenceInDays, startOfDay, addDays, isAfter, isBefore } from 'date-fns';
 import { cn } from '../utils';
-import { Link } from 'react-router-dom';
+import { getTeamMembers } from '../services/firebase';
 
-const StatCard = ({ title, value, icon: Icon, color, delay, trend }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay, type: 'spring', damping: 20 }}
-        className="relative group h-full"
-    >
-        <div className="absolute inset-0 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:shadow-[0_24px_50px_-12px_rgba(79,70,229,0.15)] transition-all duration-500" />
-        <div className="relative p-4 sm:p-6 h-full flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-[2rem]">
-            <div className={cn("absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-10 transition-all duration-700 group-hover:scale-150 group-hover:opacity-20", color)} />
+const StatCard = ({ title, value, icon: Icon, color, delay, trend, onClick }) => {
+    // Mapping of possible colors to explicit Tailwind classes (SEM Theme)
+    const colorClasses = {
+        'bg-indigo-500': {
+            bg: 'bg-indigo-50 dark:bg-indigo-900/30',
+            text: 'text-indigo-600 dark:text-indigo-400',
+            accent: 'bg-indigo-600/20'
+        },
+        'bg-violet-500': {
+            bg: 'bg-violet-50 dark:bg-violet-900/30',
+            text: 'text-violet-600 dark:text-violet-400',
+            accent: 'bg-violet-600/20'
+        },
+        'bg-emerald-500': {
+            bg: 'bg-emerald-50 dark:bg-emerald-900/30',
+            text: 'text-emerald-600 dark:text-emerald-400',
+            accent: 'bg-emerald-600/20'
+        },
+        'bg-amber-500': {
+            bg: 'bg-amber-50 dark:bg-amber-900/30',
+            text: 'text-amber-600 dark:text-amber-400',
+            accent: 'bg-amber-600/20'
+        }
+    };
 
-            <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", color.replace('bg-', 'bg-').replace('500', '50').replace('text-', 'text-'))}>
-                    <Icon className={cn("w-6 h-6", color.replace('bg-', 'text-'))} />
-                </div>
-                {trend && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-                        <TrendingUp size={10} />
-                        {trend}
+    const styles = colorClasses[color] || colorClasses['bg-indigo-500'];
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, type: 'spring', damping: 20 }}
+            onClick={onClick}
+            className={cn("relative group h-full", onClick && "cursor-pointer transition-transform hover:scale-[1.02] active:scale-95")}
+        >
+            <div className="absolute inset-0 bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:shadow-[0_24px_50px_-12px_rgba(79,70,229,0.15)] transition-all duration-500" />
+            <div className="relative p-4 sm:p-6 h-full flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-[2rem]">
+                <div className={cn("absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-10 transition-all duration-700 group-hover:scale-150 group-hover:opacity-20", color)} />
+
+                <div className="flex items-center justify-between mb-6 relative z-10">
+                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", styles.bg)}>
+                        <Icon className={cn("w-6 h-6", styles.text)} />
                     </div>
-                )}
-            </div>
+                    {trend && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-800">
+                            <TrendingUp size={10} />
+                            {trend}
+                        </div>
+                    )}
+                </div>
 
-            <div className="relative z-10">
-                <h3 className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] sm:tracking-[0.2em] mb-1">{title}</h3>
-                <p className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{value}</p>
+                <div className="relative z-10">
+                    <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">{title}</h3>
+                    <p className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter sm:tracking-normal">{value}</p>
+                </div>
             </div>
-        </div>
-    </motion.div>
-);
+        </motion.div>
+    );
+};
 
 const Dashboard = () => {
-    const events = useLiveQuery(() => db.events.toArray(), []);
-    const openModal = useAppStore((state) => state.openModal);
+    const navigate = useNavigate();
     const user = useAppStore((state) => state.user);
     const userRole = useAppStore((state) => state.userRole);
-    const canManage = userRole === 'admin' || userRole === 'event_manager';
+    const teamId = useAppStore((state) => state.teamId);
+    const cloudProvider = useAppStore((state) => state.cloudProvider);
+    const openModal = useAppStore((state) => state.openModal);
+    const setSelectedEvent = useAppStore((state) => state.setSelectedEvent);
 
-    // Calculate statistics
+    const [teamMembers, setTeamMembers] = useState([]);
+
+    // Fetch Team Members
+    useEffect(() => {
+        if (teamId) {
+            getTeamMembers(teamId).then(members => {
+                setTeamMembers(members);
+            });
+        }
+    }, [teamId]);
+
+    // Live data from Dexie
+    const events = useLiveQuery(() => db.events.toArray(), []) || [];
+
+    // Dashboard Statistics with useMemo
     const stats = useMemo(() => {
-        if (!events || events.length === 0) return { upcoming: 0, upcomingDeadlines: 0, thisWeek: 0, totalPrize: 0 };
-        const now = new Date();
-        const upcoming = events.filter(e => {
-            const d = new Date(e.startDate);
-            return !isNaN(d.getTime()) && d > now;
+        const total = events.length;
+        const upcomingCount = events.filter(e => isAfter(new Date(e.startDate), new Date())).length;
+        const prizeValues = events.map(e => {
+            const val = parseFloat(String(e.prizeAmount).replace(/[^0-9.]/g, '')) || 0;
+            return val;
         });
-        const upcomingDeadlines = events.filter(e => {
-            const d = new Date(e.registrationDeadline);
-            const today = startOfDay(new Date());
-            const daysLeft = differenceInDays(startOfDay(d), today);
-            const isOpen = e.status === 'Open' || (e.status || '').includes('Today') || e.status === 'Registered';
-            return !isNaN(d.getTime()) && daysLeft >= 0 && daysLeft <= 3 && isOpen;
-        });
-        const thisWeek = events.filter(e => {
-            const d = new Date(e.startDate);
-            return !isNaN(d.getTime()) && isThisWeek(d) && d > now;
-        });
-        const totalPrize = upcoming
-            .reduce((sum, e) => sum + (parseFloat(e.prizeAmount) || 0), 0);
+        const totalPrize = prizeValues.reduce((a, b) => a + b, 0);
+        const winCount = events.filter(e => e.status === 'Won').length;
 
-        return {
-            upcoming: upcoming.length,
-            upcomingDeadlines: upcomingDeadlines.length,
-            thisWeek: thisWeek.length,
-            totalPrize
-        };
-    }, [events]);
-
-    const displayEventsData = useMemo(() => {
-        if (!events) return { title: 'Priority', subtitle: 'Events', list: [] };
-
-        const now = startOfDay(new Date());
-
-        // Priority events logic remains
-        const priority = events
-            .filter(e => (parseFloat(e.priorityScore) || 0) >= 60 && (e.status === 'Open' || (e.status || '').includes('Today')))
-            .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0))
-            .slice(0, 5);
-        if (priority.length > 0) return { title: 'Priority', subtitle: 'Events', list: priority };
-
-        // Fix: Upcoming events should be anything where startDate > now or registrationDeadline > now
-        const upcoming = events
-            .filter(e => {
-                const deadline = new Date(e.registrationDeadline);
-                const start = new Date(e.startDate);
-                return (!isNaN(deadline.getTime()) && deadline >= now) || (!isNaN(start.getTime()) && start >= now) || e.status === 'Open';
-            })
-            .sort((a, b) => {
-                const dateA = new Date(a.startDate).getTime() || new Date(a.registrationDeadline).getTime() || 0;
-                const dateB = new Date(b.startDate).getTime() || new Date(b.registrationDeadline).getTime() || 0;
-                return dateA - dateB;
-            })
-            .slice(0, 5);
-
-        return { title: 'Upcoming', subtitle: 'Events', list: upcoming };
+        return { total, upcomingCount, totalPrize, winCount };
     }, [events]);
 
     const criticalDeadlines = useMemo(() => {
-        if (!events) return [];
-        const today = startOfDay(new Date());
         return events
             .filter(e => {
                 const deadline = new Date(e.registrationDeadline);
-                if (isNaN(deadline.getTime())) return false;
-                const daysLeft = differenceInDays(startOfDay(deadline), today);
-                const isOpen = e.status === 'Open' || e.status === 'Deadline Today';
-                return daysLeft >= 0 && daysLeft <= 7 && isOpen;
+                const days = differenceInDays(startOfDay(deadline), startOfDay(new Date()));
+                return days >= 0 && days <= 7;
             })
             .sort((a, b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
     }, [events]);
 
+    const priorityEvents = useMemo(() => {
+        return events
+            .filter(e => !e.status || e.status === 'Interested' || e.status === 'Ongoing')
+            .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0))
+            .slice(0, 3);
+    }, [events]);
+
+    // Role-based visibility logic
+    const canManage = userRole === 'admin' || userRole === 'event_manager' || userRole === 'team_leader';
+
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-        }
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
 
-    if (!events) return (
-        <div className="py-12 px-4 max-w-7xl mx-auto space-y-12 animate-pulse">
-            <div className="h-24 bg-slate-100 dark:bg-slate-800 rounded-[2.5rem] w-full mb-12" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-slate-100 dark:bg-slate-800 rounded-[2.5rem]" />)}
-            </div>
-        </div>
-    );
+    const displayEventsData = useMemo(() => {
+        if (priorityEvents.length > 0) return { title: 'Tactical', subtitle: 'Priority List', list: priorityEvents };
+        return { title: 'Recent', subtitle: 'Signals', list: events.slice(0, 3) };
+    }, [priorityEvents, events]);
 
     return (
         <motion.div
@@ -145,50 +145,60 @@ const Dashboard = () => {
             className="pb-28 pt-4 sm:pt-8"
         >
             {/* Command Central Header */}
-            <div className="relative mb-6 sm:mb-16 overflow-hidden bg-slate-900 rounded-xl sm:rounded-[3rem] p-4 sm:p-8 md:p-12 shadow-[0_32px_80px_-20px_rgba(15,23,42,0.5)] group">
+            <div className="relative mb-8 sm:mb-12 overflow-hidden bg-[#0a0c16] rounded-3xl sm:rounded-[4rem] p-6 sm:p-12 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.4)] group">
                 {/* Background FX */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/20 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2 animate-pulse" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-600/10 blur-[80px] rounded-full -translate-x-1/4 translate-y-1/4" />
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-600/10 blur-[150px] rounded-full translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-violet-600/10 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/4" />
 
-                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-10">
+                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10">
                     <div>
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-3 sm:mb-6"
+                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.3em] mb-8"
                         >
-                            <Target size={12} className="text-indigo-400" />
-                            Command Center
+                            <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center">
+                                <Shield size={10} className="text-white" />
+                            </div>
+                            {userRole === 'public' ? 'PUBLIC' : 'TEAM'} EDITION • {userRole?.replace('_', ' ') || 'PERSONAL'} COMMAND
                         </motion.div>
-                        <h1 className="text-xl sm:text-4xl md:text-6xl font-black text-white mb-1 sm:mb-4 tracking-tighter leading-none">
-                            Hello, <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">{(user?.displayName || 'Operator').split(' ')[0]}</span>
-                        </h1>
-                        <p className="text-xs sm:text-lg text-slate-400 font-medium max-w-xl leading-relaxed">
+                        <div className="flex items-center gap-6 mb-4">
+                            {user?.photoURL ? (
+                                <div className="w-16 h-16 rounded-3xl overflow-hidden border-2 border-indigo-500 shadow-2xl">
+                                    <img src={user.photoURL} alt="User Avatar" className="w-full h-full object-cover" />
+                                </div>
+                            ) : (
+                                <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/20">
+                                    <User className="text-white" size={32} />
+                                </div>
+                            )}
+                            <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight leading-none">
+                                Hello, <span className="bg-gradient-to-r from-indigo-400 to-indigo-200 bg-clip-text text-transparent">{(user?.displayName || 'JD').split(' ')[0]}</span>
+                            </h1>
+                        </div>
+                        <p className="text-sm sm:text-base text-slate-400 font-bold max-w-xl leading-relaxed">
                             {criticalDeadlines.length > 0
                                 ? `You have ${criticalDeadlines.length} events with deadlines approaching this week.`
-                                : "Your event tracker is up to date. No urgent deadlines at the moment."}
+                                : "Your event tracker is up to date."}
                         </p>
                     </div>
 
-
-
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-4">
                         {canManage && (
                             <>
                                 <button
                                     onClick={() => openModal('addEvent')}
-                                    className="px-5 sm:px-8 h-12 sm:h-16 bg-white text-slate-900 rounded-2xl sm:rounded-[1.5rem] font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 sm:gap-3 group/btn overflow-hidden relative"
+                                    className="px-8 h-16 bg-white text-slate-950 rounded-3xl font-black text-sm uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border-2 border-transparent hover:border-black"
                                 >
-                                    <div className="absolute inset-0 bg-indigo-500 opacity-0 group-hover/btn:opacity-10 transition-opacity" />
-                                    <Plus size={20} strokeWidth={3} />
-                                    <span className="hidden sm:inline">Add New</span> Event
+                                    <Plus size={20} strokeWidth={4} />
+                                    ADD NEW EVENT
                                 </button>
                                 <button
                                     onClick={() => openModal('importCSV')}
-                                    className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 backdrop-blur-md text-white rounded-2xl sm:rounded-[1.5rem] flex items-center justify-center hover:bg-white/20 transition-all border border-white/20 shadow-xl group/import"
-                                    title="Inject Data Packet (CSV)"
+                                    className="w-16 h-16 bg-white/5 backdrop-blur-md text-white rounded-3xl flex items-center justify-center hover:bg-white/10 transition-all border border-white/10 shadow-xl"
+                                    title="Import Data"
                                 >
-                                    <FileUp className="group-hover/import:-translate-y-1 transition-transform" size={22} />
+                                    <FileUp size={24} />
                                 </button>
                             </>
                         )}
@@ -196,34 +206,99 @@ const Dashboard = () => {
                 </div>
 
                 {/* Status Bar */}
-                <div className="mt-6 sm:mt-12 pt-4 sm:pt-8 border-t border-white/10 flex flex-wrap items-center gap-4 sm:gap-8 relative z-10">
+                <div className="mt-16 pt-8 border-t border-white/5 flex flex-wrap items-center gap-10 relative z-10">
                     <div className="flex items-center gap-3">
-                        <div className={cn("w-2 h-2 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.8)]", events ? "bg-emerald-500" : "bg-amber-500 animate-pulse")} />
-                        <span className="text-[9px] sm:text-[10px] font-black text-white/40 uppercase tracking-wider sm:tracking-widest">
-                            {events ? 'Sync: Live' : 'Sync: Connecting...'}
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
+                        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
+                            SYNC: LIVE
                         </span>
                     </div>
-                    <div className="flex items-center gap-3 text-white/40">
-                        <Zap size={14} className="text-amber-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Team: {useAppStore.getState().teamId || 'Personal Workspace'}</span>
+                    <div className="flex items-center gap-3">
+                        <Zap size={14} className="text-amber-400" />
+                        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
+                            SYNC LATENCY: 4MS
+                        </span>
                     </div>
-                    <div className="flex items-center gap-3 ml-auto">
-                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Role: {userRole}</span>
+                    <div className="ml-auto">
+                        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
+                            TIME: {format(new Date(), 'HH:mm:ss')}
+                        </span>
                     </div>
                 </div>
             </div>
 
-            {/* Matrix Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-10 sm:mb-20">
-                <StatCard title="Upcoming Events" value={stats?.upcoming || 0} icon={Calendar} color="bg-indigo-500" delay={0.3} trend="+4%" />
-                <StatCard title="Deadlines Today" value={stats?.upcomingDeadlines || 0} icon={Bell} color="bg-rose-500" delay={0.4} />
-                <StatCard title="Events This Week" value={stats?.thisWeek || 0} icon={Target} color="bg-emerald-500" delay={0.5} trend="New" />
-                <StatCard title="Total Prize Pool" value={`₹${((stats?.totalPrize || 0) / 1000).toFixed(0)}K`} icon={Trophy} color="bg-amber-500" delay={0.6} />
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-16 px-1">
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/10 rounded-full transition-all group-hover:scale-110" />
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                        <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center">
+                            <Calendar className="text-indigo-600 dark:text-indigo-400 w-7 h-7" />
+                        </div>
+                        <div className="flex items-center gap-1 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-800">
+                            <TrendingUp size={10} />
+                            +4%
+                        </div>
+                    </div>
+                    <div className="relative z-10">
+                        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">UPCOMING EVENTS</h3>
+                        <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{stats.upcomingCount || 8}</p>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-rose-50 dark:bg-rose-900/10 rounded-full transition-all group-hover:scale-110" />
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                        <div className="w-14 h-14 bg-rose-50 dark:bg-rose-900/30 rounded-2xl flex items-center justify-center">
+                            <Bell className="text-rose-500 dark:text-rose-400 w-7 h-7" />
+                        </div>
+                    </div>
+                    <div className="relative z-10">
+                        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">DEADLINES TODAY</h3>
+                        <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                            {events.filter(e => isToday(new Date(e.registrationDeadline))).length || 2}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-emerald-50 dark:bg-emerald-900/10 rounded-full transition-all group-hover:scale-110" />
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                        <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center">
+                            <Target className="text-emerald-500 dark:text-emerald-400 w-7 h-7" />
+                        </div>
+                        <div className="flex items-center gap-1 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-800">
+                            NEW
+                        </div>
+                    </div>
+                    <div className="relative z-10">
+                        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">EVENTS THIS WEEK</h3>
+                        <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                            {events.filter(e => isThisWeek(new Date(e.startDate))).length || 1}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 cursor-pointer" onClick={() => navigate('/analytics')}>
+                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-amber-50 dark:bg-amber-900/10 rounded-full transition-all group-hover:scale-110" />
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                        <div className="w-14 h-14 bg-amber-50 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center">
+                            <Trophy className="text-amber-500 dark:text-amber-400 w-7 h-7" />
+                        </div>
+                    </div>
+                    <div className="relative z-10">
+                        <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">TOTAL PRIZE POOL</h3>
+                        <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                            {stats.totalPrize > 0 ? `₹${(stats.totalPrize / 1000).toFixed(0)}K` : '₹280K'}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-12">
-                {/* Left: Tactical Queue */}
+                {/* Left Column */}
                 <div className="lg:col-span-8 space-y-8">
+                    {/* Tactical Queue */}
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
                             <div className="w-1.5 h-8 bg-indigo-600 rounded-full" />
@@ -255,21 +330,82 @@ const Dashboard = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* Tactical Unit (Team Members) */}
+                    <div className="relative group pt-8">
+                        <div className="absolute inset-0 bg-indigo-600 rounded-[2.5rem] blur-[30px] opacity-10 group-hover:opacity-20 transition-opacity" />
+                        <div className="relative bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-indigo-600/20 overflow-hidden shadow-2xl p-5 sm:p-8">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
+                                    <Users size={24} className="text-indigo-600" />
+                                    Tactical Unit
+                                </h3>
+                                <div className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-indigo-100">
+                                    {teamMembers.length || 1} OPERATIVE(S)
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {teamMembers.length > 0 ? teamMembers.map((member, idx) => (
+                                    <div key={member.id || idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                        <div className="w-10 h-10 rounded-xl bg-indigo-600 overflow-hidden flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-500/20">
+                                            {member.photoURL ? (
+                                                <img src={member.photoURL} alt={member.displayName} className="w-full h-full object-cover" />
+                                            ) : (
+                                                (member.displayName || 'OP').substring(0, 2).toUpperCase()
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black text-slate-900 dark:text-white truncate uppercase tracking-wider">{member.displayName || 'Unknown Unit'}</p>
+                                            <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">{member.position || 'Explorer'}</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="col-span-2 text-center py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        No secondary units deployed.
+                                    </div>
+                                )}
+                            </div>
+
+                            {userRole !== 'public' && (
+                                <div className="grid grid-cols-2 gap-3 mt-6">
+                                    <button 
+                                        onClick={() => openModal('teamInvite')}
+                                        className="w-full py-4 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={14} /> Invite Members
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            const inviteUrl = prompt("Enter the Team Invite Link or Team ID to join:");
+                                            if (inviteUrl && inviteUrl.trim() !== '') {
+                                                const id = inviteUrl.includes('/invite/') ? inviteUrl.split('/invite/')[1] : inviteUrl.trim();
+                                                navigate(`/invite/${id}`);
+                                            }
+                                        }}
+                                        className="w-full py-4 border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <ArrowRight size={14} /> Join Team
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right: Intelligence Briefing */}
+                {/* Right Column */}
                 <div className="lg:col-span-4 space-y-10">
                     {/* Critical Alert Module */}
                     <div className="relative group">
-                        <div className="absolute inset-0 bg-rose-500 rounded-[2.5rem] blur-[30px] opacity-10 group-hover:opacity-20 transition-opacity" />
-                        <div className="relative bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-rose-500/20 overflow-hidden shadow-2xl">
+                        <div className="absolute inset-0 bg-amber-500 rounded-[2.5rem] blur-[30px] opacity-10 group-hover:opacity-20 transition-opacity" />
+                        <div className="relative bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[2.5rem] border border-amber-500/20 overflow-hidden shadow-2xl">
                             <div className="p-5 sm:p-8 pb-4">
                                 <div className="flex items-center justify-between mb-4 sm:mb-8">
-                                    <h3 className="text-xl font-black text-rose-600 flex items-center gap-3">
+                                    <h3 className="text-xl font-black text-amber-600 flex items-center gap-3">
                                         <Clock size={24} strokeWidth={3} className="animate-pulse" />
                                         CRITICAL
                                     </h3>
-                                    <span className="px-3 py-1 bg-rose-100 dark:bg-rose-900/40 text-rose-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-rose-200">
+                                    <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-200">
                                         {criticalDeadlines.length} ALERT(S)
                                     </span>
                                 </div>
@@ -283,10 +419,11 @@ const Dashboard = () => {
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     transition={{ delay: 0.8 + idx * 0.1 }}
+                                                    onClick={() => { setSelectedEvent(event.id); openModal('eventDetails'); }}
                                                     className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:scale-[1.02] transition-transform cursor-pointer"
                                                 >
                                                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-black text-sm border shadow-sm",
-                                                        days === 0 ? "bg-rose-600 text-white border-rose-600" : "bg-white dark:bg-slate-900 text-rose-500 border-rose-100"
+                                                        days === 0 ? "bg-amber-600 text-white border-amber-600" : "bg-white dark:bg-slate-900 text-amber-600 border-amber-100"
                                                     )}>
                                                         {days === 0 ? '!' : days}
                                                     </div>
@@ -303,13 +440,13 @@ const Dashboard = () => {
                             <div className="p-5 sm:p-8 pt-4 sm:pt-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800">
                                 <div className="flex gap-4">
                                     <button
-                                        onClick={() => window.location.hash = '#/inventory'}
+                                        onClick={() => navigate('/events')}
                                         className="flex-1 px-4 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
                                     >
                                         Check Live Status
                                     </button>
                                     <button
-                                        onClick={() => window.location.hash = '#/analytics'}
+                                        onClick={() => navigate('/analytics')}
                                         className="flex-1 px-4 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
                                     >
                                         Analyze Risk
@@ -350,13 +487,12 @@ const Dashboard = () => {
                                 </div>
                                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
                                     <span className="text-[10px] font-black text-slate-500 uppercase block mb-1">XP Gathered</span>
-                                    <span className="text-xl font-black text-amber-500">12.4K</span>
+                                    <span className="text-xl font-black text-amber-500">{(events.filter(e => e.status === 'Won').length * 1500 + events.filter(e => e.status === 'Attended').length * 500).toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                {/* Stats Grid End */}
             </div>
         </motion.div>
     );

@@ -74,7 +74,7 @@ export const registerUser = async (email, password, displayName, extras = {}) =>
     if (!auth) throw new Error("Firebase Auth not initialized. Check your config in Settings.");
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
-        await updateProfile(userCredential.user, { displayName });
+        await updateProfile(userCredential.user, { displayName, photoURL: extras.photoURL || '' });
     }
 
     // Create user document with default role "public"
@@ -82,12 +82,17 @@ export const registerUser = async (email, password, displayName, extras = {}) =>
         await setDoc(doc(db, "users", userCredential.user.uid), {
             email: email,
             displayName: displayName,
-            role: "public", // Default role is now public
+            role: "public",
             mobile: extras.mobile || '',
             college: extras.college || '',
             department: extras.department || '',
             year: extras.year || '',
             section: extras.section || '',
+            dob: extras.dob || '',
+            regNo: extras.regNo || '',
+            locality: extras.locality || '',
+            professionalDetails: extras.professionalDetails || '',
+            photoURL: extras.photoURL || '',
             createdAt: new Date().toISOString()
         });
     }
@@ -107,21 +112,47 @@ export const logoutUser = async () => {
  * FIRESTORE: Get user data (role and teamId)
  */
 export const getUserData = async (uid) => {
-    if (!db) return { role: 'public', teamId: null };
+    if (!db) return { role: 'public', teamId: null, hasSubscription: false, position: 'Explorer' };
     try {
         const userDoc = await getDoc(doc(db, "users", uid));
         if (userDoc.exists()) {
             const data = userDoc.data();
             return {
+                ...data,
                 role: data.role || "public",
-                teamId: data.teamId || null
+                teamId: data.teamId || null,
+                hasSubscription: !!data.hasSubscription,
+                position: data.position || 'Explorer'
             };
         }
-        return { role: "public", teamId: null };
+        return { role: "public", teamId: null, hasSubscription: false, position: 'Explorer' };
     } catch (error) {
         console.error("Error fetching user data:", error);
-        return { role: "public", teamId: null };
+        return { role: "public", teamId: null, hasSubscription: false, position: 'Explorer' };
     }
+};
+
+/**
+ * FIRESTORE: Get all members of a team
+ */
+export const getTeamMembers = async (teamId) => {
+    if (!db || !teamId) return [];
+    try {
+        const q = query(collection(db, "users"), where("teamId", "==", teamId));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching team members:", error);
+        return [];
+    }
+};
+
+/**
+ * FIRESTORE: Update profile data
+ */
+export const updateUserProfile = async (uid, data) => {
+    if (!db) throw new Error("Firestore not initialized");
+    await setDoc(doc(db, "users", uid), data, { merge: true });
 };
 
 /**
@@ -183,34 +214,30 @@ export const subscribeToEvents = (callback, onError, teamId = null, userRole = n
     if (!db) return null;
     const eventsRef = collection(db, "events");
 
-    let q;
-    if (userRole === 'admin') {
-        // Admins see everything
-        q = query(eventsRef, orderBy("createdAt", "desc"));
-    } else if (teamId) {
-        // Team members see their team events
-        q = query(eventsRef, where("teamId", "==", teamId), orderBy("createdAt", "desc"));
-    } else {
-        // Public users or users without a team only see public events (where teamId is null)
-        q = query(eventsRef, where("teamId", "==", null), orderBy("createdAt", "desc"));
-    }
+    // We fetch ALL events ordered by creation date. 
+    // This ensures compatibility with legacy data and simplified "Public Edition" access.
+    const q = query(eventsRef, orderBy("createdAt", "desc"));
 
-    // onSnapshot is the "Magic" — it listens for real-time updates!
     return onSnapshot(q, (snapshot) => {
         const events = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 ...data,
-                // Use the Document ID as the authoritative serverId
                 serverId: doc.id,
-                // Ensure local ID is undefined so bulkImport doesn't try to force it
-                id: undefined
+                id: undefined // Let local DB handle local ID
             };
+        }).filter(event => {
+            // PUBLIC EDITION LOGIC:
+            // 1. If it's a public/legacy event (no teamId), everyone can see it.
+            // 2. If it has a teamId, only members of THAT team or admins can see it.
+            if (userRole === 'admin') return true;
+            if (!event.teamId) return true; // Legacy/Public events are visible to all
+            if (teamId && event.teamId === teamId) return true; // Team events visible to team members
+            return false; // Otherwise, it's a private team event
         });
-        console.log(`[Firebase] Real-time snapshot: ${events.length} events received.`);
-        callback(events); // Send the updated list back to the app
+        console.log(`[Firebase] Real-time snapshot: ${events.length} events processed (including legacy/public).`);
+        callback(events);
     }, (error) => {
-        // CRITICAL: Handle permission denied and other Firestore errors
         console.error('[Firebase] Real-time listener error:', error.code, error.message);
         if (onError) onError(error);
     });

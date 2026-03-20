@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, updateEvent, deleteEvent, EventStatus } from '../db';
 import { useAppStore } from '../store';
 import { X, Calendar, MapPin, Trophy, Users, ExternalLink, Trash2, Edit, Clock, Sparkles, Heart, Phone, Info, Globe, Shield, ShieldCheck, Zap, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn, resolveImageUrl } from '../utils';
+import { cn, resolveImageUrl, getDefaultPoster } from '../utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Safe Formatter
@@ -44,9 +44,9 @@ const DetailPosterImage = ({ event }) => {
     }, [event.posterBlob, event.posterUrl]);
 
     if (!imgSrc) return (
-        <div className="w-full h-28 sm:h-32 bg-slate-100 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 mb-3">
-            <Zap size={18} className="text-slate-300 mb-2 animate-pulse" />
-            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400">No Poster Available</span>
+        <div className="w-full h-32 sm:h-40 bg-gradient-to-br from-indigo-500/10 via-violet-500/10 to-transparent rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 mb-3">
+            <Zap size={24} className="text-indigo-400 mb-2 animate-pulse" />
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">No Information Poster</span>
         </div>
     );
 
@@ -55,13 +55,45 @@ const DetailPosterImage = ({ event }) => {
             <img
                 src={imgSrc}
                 alt={event.eventName}
-                className="w-full max-h-[180px] sm:max-h-[220px] object-contain bg-slate-900 group-hover:scale-105 transition-transform duration-700"
+                className="w-full max-h-[220px] sm:max-h-[300px] object-cover bg-slate-900 group-hover:scale-105 transition-transform duration-700"
                 onError={() => setImgSrc(null)}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                <p className="text-white text-[8px] font-black uppercase tracking-widest">Event Poster: {event.eventName}</p>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
+                <p className="text-white text-[8px] font-black uppercase tracking-widest">Image Source Locked</p>
             </div>
         </div>
+    );
+};
+
+const ZoomImage = ({ event }) => {
+    const [zoomSrc, setZoomSrc] = useState(null);
+
+    useEffect(() => {
+        let objectUrl = null;
+        if (event.posterBlob instanceof Blob) {
+            objectUrl = URL.createObjectURL(event.posterBlob);
+            setZoomSrc(objectUrl);
+        } else if (typeof event.posterBlob === 'string' && event.posterBlob) {
+            setZoomSrc(resolveImageUrl(event.posterBlob));
+        } else if (event.posterUrl) {
+            setZoomSrc(resolveImageUrl(event.posterUrl));
+        } else {
+            setZoomSrc(null);
+        }
+        return () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [event.posterBlob, event.posterUrl]);
+
+    if (!zoomSrc) return null;
+    return (
+        <motion.img
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            src={zoomSrc}
+            className="max-w-full max-h-screen object-contain rounded-lg shadow-2xl"
+        />
     );
 };
 
@@ -71,7 +103,7 @@ const EventDetailsModal = () => {
     const selectedEvent = useAppStore((state) => state.selectedEvent);
     const isOpen = modals.eventDetails;
     const userRole = useAppStore((state) => state.userRole);
-    const canManage = userRole === 'admin' || userRole === 'event_manager';
+    const canManage = userRole === 'admin' || userRole === 'event_manager' || userRole === 'team_leader';
 
     const event = useLiveQuery(
         () => selectedEvent ? db.events.get(selectedEvent) : null,
@@ -154,7 +186,7 @@ const EventDetailsModal = () => {
                         <div className={cn(
                             "px-1.5 py-0.5 backdrop-blur-md rounded text-[6px] sm:text-[7px] font-black uppercase tracking-widest border",
                             event.status === 'Registered' ? "bg-emerald-500/20 border-emerald-500/20 text-emerald-100" :
-                                event.status === 'Deadline Today' ? "bg-rose-500/20 border-rose-500/20 text-rose-100 animate-pulse" :
+                                event.status === 'Deadline Today' ? "bg-amber-500/20 border-amber-500/20 text-amber-100 animate-pulse" :
                                     "bg-white/10 border-white/10"
                         )}>
                             {event.status}
@@ -177,7 +209,7 @@ const EventDetailsModal = () => {
                             }}
                             className={cn(
                                 "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all border",
-                                event.isShortlisted ? "bg-rose-500 border-rose-400 text-white" : "bg-white/10 border-white/10 text-white/60 hover:bg-white/20"
+                                event.isShortlisted ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white/10 border-white/10 text-white/60 hover:bg-white/20"
                             )}
                         >
                             <Heart size={12} className="sm:size-[14px]" fill={event.isShortlisted ? "currentColor" : "none"} />
@@ -235,7 +267,7 @@ const EventDetailsModal = () => {
                             >
                                 <div className={cn("flex items-center gap-1.5 mb-0.5",
                                     event.status === 'Registered' ? "text-emerald-600 dark:text-emerald-400" :
-                                        (event.status === 'Deadline Today' || event.status === 'Open') ? "text-rose-500" : "text-slate-400"
+                                        (event.status === 'Deadline Today' || event.status === 'Open') ? "text-amber-500" : "text-slate-400"
                                 )}>
                                     {event.status === 'Registered' ? <ShieldCheck size={10} /> : <Calendar size={10} />}
                                     <span className={cn("text-[7px] font-black uppercase tracking-wider", event.status === 'Registered' ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400")}>
@@ -244,7 +276,7 @@ const EventDetailsModal = () => {
                                 </div>
                                 <p className={cn("text-[11px] sm:text-xs font-black",
                                     event.status === 'Registered' ? "text-emerald-700 dark:text-emerald-300" :
-                                        (event.status === 'Deadline Today' || event.status === 'Open') ? "text-rose-600 dark:text-rose-400" :
+                                        (event.status === 'Deadline Today' || event.status === 'Open') ? "text-amber-600 dark:text-amber-400" :
                                             "text-slate-500 dark:text-slate-400"
                                 )}>
                                     {event.status === 'Registered' ? 'Participation Confirmed' : safeFormat(event.registrationDeadline, 'MMM dd, yyyy')}
@@ -259,7 +291,7 @@ const EventDetailsModal = () => {
                                 <p className="text-[11px] sm:text-xs font-black text-slate-900 dark:text-white">{safeFormat(event.startDate, 'MMM dd')} - {safeFormat(event.endDate, 'dd')}</p>
                             </div>
                             <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0"><MapPin size={11} /></div>
+                                <div className="w-6 h-6 rounded-md bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-500 shrink-0"><MapPin size={11} /></div>
                                 <div className="flex-1 min-w-0">
                                     <span className="text-[6px] sm:text-[7px] font-black uppercase tracking-wider text-slate-400 block">Location</span>
                                     <span className="text-[10px] sm:text-[11px] font-bold text-slate-900 dark:text-white leading-none truncate block">{event.location || 'Campus'}</span>
@@ -280,12 +312,23 @@ const EventDetailsModal = () => {
                         </div>
 
                         {/* Contact Bar */}
-                        <a href={`tel:${event.contact1}`} className="p-2.5 sm:p-3 bg-slate-900 text-white rounded-lg shadow-sm flex items-center gap-2.5 hover:scale-[1.01] transition-transform mb-3">
+                        <a 
+                            href={userRole === 'public' ? '#' : `tel:${event.contact1}`} 
+                            onClick={(e) => userRole === 'public' && (e.preventDefault(), openModal('payment'))}
+                            className="p-2.5 sm:p-3 bg-slate-900 text-white rounded-lg shadow-sm flex items-center gap-2.5 hover:scale-[1.01] transition-transform mb-3"
+                        >
                             <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center text-white shrink-0"><Phone size={12} /></div>
                             <div className="flex-1">
                                 <span className="text-[7px] font-black uppercase tracking-wider text-white/50 block">Primary Contact</span>
-                                <span className="text-[11px] font-mono font-bold leading-none">{event.contact1 || '91+ **********'}</span>
+                                <span className="text-[11px] font-mono font-bold leading-none">
+                                    {(event.contact1 && userRole !== 'public') 
+                                        ? event.contact1 
+                                        : (event.contact1 
+                                            ? `${event.contact1.substring(0, 3)}****${event.contact1.substring(event.contact1.length - 3)}` 
+                                            : '91+ **********')}
+                                </span>
                             </div>
+                            {userRole === 'public' && <div className="text-[6px] font-black uppercase px-1.5 py-1 bg-indigo-500 rounded text-white tracking-widest">Unlock</div>}
                         </a>
 
                         {/* About Section */}
@@ -348,7 +391,7 @@ const EventDetailsModal = () => {
                                 href={event.registrationLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="mt-2 w-full h-10 sm:h-11 bg-rose-600 text-white rounded-lg flex items-center justify-center gap-2 group hover:brightness-110 transition-all font-black text-[9px] uppercase tracking-widest shadow-lg shadow-rose-500/20"
+                                className="mt-2 w-full h-10 sm:h-11 bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-2 group hover:brightness-110 transition-all font-black text-[9px] uppercase tracking-widest shadow-lg shadow-indigo-500/20"
                             >
                                 <ExternalLink size={14} />
                                 Registration Form
@@ -359,7 +402,7 @@ const EventDetailsModal = () => {
                 </div>
 
                 {/* Footer Section */}
-                < div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 shrink-0" >
+                <div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 shrink-0">
                     {canManage && (
                         <button
                             onClick={handleDelete}
@@ -387,29 +430,25 @@ const EventDetailsModal = () => {
                             Dismiss
                         </button>
                     </div>
-                </div >
-            </motion.div >
+                </div>
+            </motion.div>
 
             {/* FULL SCREEN IMAGE ZOOM MODAL */}
-            < AnimatePresence >
+            <AnimatePresence>
                 {isZoomed && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         onClick={() => setIsZoomed(false)}
                         className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 cursor-zoom-out"
                     >
-                        <motion.img
-                            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
-                            src={event.posterBlob ? URL.createObjectURL(event.posterBlob) : (resolveImageUrl(event.posterUrl) || '')}
-                            className="max-w-full max-h-screen object-contain rounded-lg shadow-2xl"
-                        />
+                        <ZoomImage event={event} />
                         <button className="absolute top-4 right-4 text-white/50 hover:text-white p-2 bg-white/10 rounded-full backdrop-blur-md">
                             <X size={24} />
                         </button>
                     </motion.div>
                 )}
-            </AnimatePresence >
-        </div >,
+            </AnimatePresence>
+        </div>,
         document.body
     );
 };

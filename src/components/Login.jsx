@@ -17,11 +17,13 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [mobile, setMobile] = useState('');
     const [college, setCollege] = useState('');
+    const [dob, setDob] = useState('');
+    const [regNo, setRegNo] = useState('');
     const [department, setDepartment] = useState('');
+    const [locality, setLocality] = useState('');
     const [year, setYear] = useState('');
-    const [section, setSection] = useState('');
+    const [professionalDetails, setProfessionalDetails] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -30,6 +32,7 @@ const Login = () => {
     const setUser = useAppStore((state) => state.setUser);
     const setUserRole = useAppStore((state) => state.setUserRole);
     const setCloudProvider = useAppStore((state) => state.setCloudProvider);
+    const setUserProfile = useAppStore((state) => state.setUserProfile);
 
     /**
      * Handles the authentication logic when the button is clicked.
@@ -50,12 +53,15 @@ const Login = () => {
 
             if (isRegistering) {
                 // Execute Firebase "Create User" logic
-                const userCredential = await registerUser(email, password, name, { mobile, college, department, year, section });
+                const userCredential = await registerUser(email, password, name, {
+                    college, dob, regNo, department, locality, year, professionalDetails
+                });
                 setUser(userCredential.user);    // Save user to the "Brain" (Store)
 
                 // Fetch and set role
                 const userData = await getUserData(userCredential.user.uid);
                 setUserRole(userData.role);
+                setUserProfile(userData);
                 useAppStore.getState().setTeamId(userData.teamId);
 
                 setCloudProvider('firestore');   // Activate cloud sync
@@ -67,6 +73,7 @@ const Login = () => {
                 // Fetch and set role
                 const userData = await getUserData(userCredential.user.uid);
                 setUserRole(userData.role);
+                setUserProfile(userData);
                 useAppStore.getState().setTeamId(userData.teamId);
 
                 setCloudProvider('firestore');   // Activate cloud sync
@@ -90,8 +97,8 @@ const Login = () => {
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 relative overflow-hidden">
             {/* Elegant Background Shadows */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 blur-[120px] rounded-full" />
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full" />
             </div>
 
             <motion.div
@@ -109,7 +116,7 @@ const Login = () => {
                         <Shield size={40} className="text-white -rotate-12" />
                     </motion.div>
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-                        {isRegistering ? 'Create' : 'Team'} <span className="text-indigo-600">{isRegistering ? 'Account' : 'Access'}</span>
+                        {isRegistering ? 'Create' : 'SEM'} <span className="text-indigo-600">{isRegistering ? 'Account' : 'Access'}</span>
                     </h1>
                     <p className="text-slate-500 font-medium">
                         {isRegistering ? 'Sign up to start collaborating.' : 'Please log in to sync your event data.'}
@@ -121,63 +128,29 @@ const Login = () => {
                     <form onSubmit={handleAuth} className="space-y-6">
                         <div className="space-y-4">
                             {isRegistering && (
-                                <>
+                                <div className="space-y-4 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2 mb-4">
                                     <div className="relative group">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                                             <Shield size={18} />
                                         </div>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            placeholder="Full Name"
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border focus:border-indigo-500 rounded-xl outline-none font-semibold transition-all"
-                                        />
+                                        <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="input pl-11 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 w-full" />
                                     </div>
-                                    <input
-                                        type="tel"
-                                        required
-                                        value={mobile}
-                                        onChange={(e) => setMobile(e.target.value)}
-                                        placeholder="Mobile Number"
-                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border focus:border-indigo-500 rounded-xl outline-none font-semibold transition-all"
-                                    />
-                                    <input
-                                        type="text"
-                                        required
-                                        value={college}
-                                        onChange={(e) => setCollege(e.target.value)}
-                                        placeholder="College Name"
-                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border focus:border-indigo-500 rounded-xl outline-none font-semibold transition-all"
-                                    />
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <input
-                                            type="text"
-                                            required
-                                            value={department}
-                                            onChange={(e) => setDepartment(e.target.value)}
-                                            placeholder="Dept"
-                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border focus:border-indigo-500 rounded-xl outline-none font-semibold transition-all"
-                                        />
-                                        <input
-                                            type="text"
-                                            required
-                                            value={year}
-                                            onChange={(e) => setYear(e.target.value)}
-                                            placeholder="Year"
-                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border focus:border-indigo-500 rounded-xl outline-none font-semibold transition-all"
-                                        />
-                                        <input
-                                            type="text"
-                                            required
-                                            value={section}
-                                            onChange={(e) => setSection(e.target.value)}
-                                            placeholder="Section"
-                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border focus:border-indigo-500 rounded-xl outline-none font-semibold transition-all"
-                                        />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input type="text" value={college} onChange={(e) => setCollege(e.target.value)} placeholder="College Name" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
+                                        <input type="text" value={regNo} onChange={(e) => setRegNo(e.target.value)} placeholder="Register No." className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
+                                        <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
+                                        <input type="text" value={year} onChange={(e) => setYear(e.target.value)} placeholder="Year of Study" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
+                                        <div className="col-span-2">
+                                            <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} placeholder="Date of Birth" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full text-slate-500 dark:text-slate-400" />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <input type="text" value={locality} onChange={(e) => setLocality(e.target.value)} placeholder="Locality / City" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <textarea value={professionalDetails} onChange={(e) => setProfessionalDetails(e.target.value)} placeholder="Professional Summary, Skills, Extra-curriculars..." rows={3} className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full custom-scrollbar resize-none" />
+                                        </div>
                                     </div>
-                                </>
+                                </div>
                             )}
 
                             <div className="relative group">
@@ -188,7 +161,7 @@ const Login = () => {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="Email Address"
-                                    className="input pl-11 !py-3 font-semibold"
+                                    className="input pl-11 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500"
                                 />
                             </div>
 
@@ -221,7 +194,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="btn btn-primary w-full h-14 font-black shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white w-full h-14 font-black rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95"
                         >
                             {isLoading ? (
                                 <Loader2 className="animate-spin" size={20} />

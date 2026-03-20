@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../store';
 import { format, differenceInDays } from 'date-fns';
-import { cn, resolveImageUrl } from '../utils';
+import { cn, resolveImageUrl, getDefaultPoster } from '../utils';
 import {
     Calendar, MapPin, Trophy, Clock, Heart, Zap, Users, ShieldCheck,
     Globe, Pin, IndianRupee, Trash2, Edit, ExternalLink
@@ -29,16 +29,7 @@ const safeDiff = (date) => {
     }
 };
 
-const getDefaultPoster = (eventType, seed = '') => {
-    const type = (eventType || '').toLowerCase();
-    const idHash = (seed || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const variant = (idHash % 2) === 0 ? '' : '_alt1';
-
-    if (type.includes('hackathon') || type.includes('coding')) return `/posters/hackathon${variant}.png`;
-    if (type.includes('workshop') || type.includes('seminar') || type.includes('guest lecture')) return `/posters/workshop${variant}.png`;
-    if (type.includes('contest') || type.includes('competition') || type.includes('expo') || type.includes('presentation')) return `/posters/contest${variant}.png`;
-    return `/posters/generic${variant}.png`; // Fallback for 'Other', 'Conference', etc.
-};
+// Removed local DEFAULT_POSTERS and getDefaultPoster definitions.
 
 const PosterImage = ({ event }) => {
     const [imgSrc, setImgSrc] = React.useState(null);
@@ -54,8 +45,7 @@ const PosterImage = ({ event }) => {
         } else if (event.posterUrl) {
             setImgSrc(resolveImageUrl(event.posterUrl));
         } else {
-            // Use category-specific default placeholder
-            setImgSrc(getDefaultPoster(event.eventType, event.id));
+            setImgSrc(null);
         }
 
         return () => {
@@ -63,10 +53,9 @@ const PosterImage = ({ event }) => {
                 URL.revokeObjectURL(objectUrl);
             }
         };
-    }, [event.posterBlob, event.posterUrl, event.eventType, event.id]);
+    }, [event.posterBlob, event.posterUrl]);
 
     if (!imgSrc) {
-        // Fallback for when even the default poster fails to load somehow
         return (
             <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-800 flex flex-col items-center justify-center p-4">
                 <Zap size={24} className="text-white/40 mb-2 animate-pulse" />
@@ -80,14 +69,6 @@ const PosterImage = ({ event }) => {
             src={imgSrc}
             alt={event.eventName}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-            onError={() => {
-                // Prevent infinite loop if default poster is also missing
-                if (imgSrc !== getDefaultPoster(event.eventType, event.id)) {
-                    setImgSrc(getDefaultPoster(event.eventType, event.id));
-                } else {
-                    setImgSrc(null);
-                }
-            }}
         />
     );
 };
@@ -147,12 +128,12 @@ const EventCard = React.memo(({ event, compact = false }) => {
             whileHover={{ y: -4 }}
             onClick={handleClick}
             className={cn(
-                "group relative bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl cursor-pointer border transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 overflow-hidden flex flex-col sm:flex-row h-full min-h-0 sm:min-h-[14rem]",
+                "group relative bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl cursor-pointer border transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 overflow-hidden flex flex-col sm:flex-row h-full min-h-0 sm:min-h-[16rem]",
                 isPinned ? "border-indigo-500/30 ring-2 ring-indigo-500/10" : "border-slate-100 dark:border-slate-800 hover:border-indigo-500/20"
             )}
         >
             {/* Left: Poster Image */}
-            <div className={cn("relative w-full sm:shrink-0 h-32 sm:h-auto overflow-hidden bg-slate-100 dark:bg-slate-800", compact ? "sm:w-32" : "sm:w-48 md:w-56 lg:w-64")}>
+            <div className={cn("relative w-full sm:shrink-0 h-36 sm:h-auto overflow-hidden bg-slate-100 dark:bg-slate-800", compact ? "sm:w-40" : "sm:w-56 md:w-64")}>
                 <PosterImage event={event} statusConfig={statusConfig} />
 
                 {/* Priority Score Overlay */}
@@ -183,7 +164,7 @@ const EventCard = React.memo(({ event, compact = false }) => {
             </div>
 
             {/* Right: Content */}
-            <div className="flex-1 p-3 sm:p-5 md:p-6 flex flex-col justify-between min-w-0">
+            <div className="flex-1 p-4 sm:p-6 flex flex-col justify-between min-w-0">
 
                 {/* Header Row: Type + Actions */}
                 <div className="flex items-start justify-between mb-2">
@@ -195,17 +176,7 @@ const EventCard = React.memo(({ event, compact = false }) => {
                         <button onClick={(e) => { e.stopPropagation(); togglePinnedEvent(event.id); }} className={cn("p-1.5 rounded-lg transition-colors", isPinned ? "text-indigo-600 bg-indigo-50" : "text-slate-400 hover:bg-slate-100")}>
                             <Pin size={14} fill={isPinned ? "currentColor" : "none"} />
                         </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (userRole === 'public') {
-                                    openModal('payment');
-                                } else {
-                                    updateEvent(event.id, { isShortlisted: !event.isShortlisted });
-                                }
-                            }}
-                            className={cn("p-1.5 rounded-lg transition-colors", event.isShortlisted ? "text-rose-500 bg-rose-50" : "text-slate-400 hover:bg-slate-100")}
-                        >
+                        <button onClick={(e) => { e.stopPropagation(); updateEvent(event.id, { isShortlisted: !event.isShortlisted }); }} className={cn("p-1.5 rounded-lg transition-colors", event.isShortlisted ? "text-rose-500 bg-rose-50" : "text-slate-400 hover:bg-slate-100")}>
                             <Heart size={14} fill={event.isShortlisted ? "currentColor" : "none"} />
                         </button>
                         {canEdit && (
@@ -226,21 +197,9 @@ const EventCard = React.memo(({ event, compact = false }) => {
                     <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 transition-colors leading-tight">
                         {event.eventName}
                     </h3>
-                    <div className="flex flex-wrap items-center gap-3 mt-2 no-click">
-                        <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                            <Globe size={12} />
-                            <span className="text-xs font-bold uppercase tracking-wide truncate max-w-[150px]">{event.collegeName}</span>
-                        </div>
-                        {event.website && (
-                            <a href={event.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white transition-all">
-                                <Globe size={10} /> Website
-                            </a>
-                        )}
-                        {event.registrationLink && (
-                            <a href={event.registrationLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest rounded border border-rose-100 dark:border-rose-800 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-500/10">
-                                <ExternalLink size={10} /> Register
-                            </a>
-                        )}
+                    <div className="flex items-center gap-1.5 mt-1 text-slate-500 dark:text-slate-400">
+                        <Globe size={12} />
+                        <span className="text-xs font-bold uppercase tracking-wide truncate">{event.collegeName}</span>
                     </div>
                 </div>
 
@@ -278,7 +237,7 @@ const EventCard = React.memo(({ event, compact = false }) => {
 
                 {/* Description Snippet or Eligibility */}
                 {(event.eligibility || event.description) && (
-                    <div className="mb-3 sm:mb-4 p-2 sm:p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                         {event.eligibility ? (
                             <div className="flex items-start gap-2">
                                 <ShieldCheck size={12} className="text-indigo-500 mt-0.5 shrink-0" />
@@ -362,40 +321,6 @@ const EventCard = React.memo(({ event, compact = false }) => {
                             </span>
                         </div>
                     </div>
-                </div>
-
-                {/* Team Details Expansion (Optional, for large cards or modal) 
-                    The user asked for a "more team details section" if team size > 1.
-                    Since this is a card, I'm showing the Team Name. 
-                    Full details should be in the modal. Match the design:
-                    The design shows compact info.
-                */}
-
-                {/* Register Action */}
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between no-click" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-2">
-                        {event.website && (
-                            <a
-                                href={event.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-                            >
-                                <Globe size={12} />
-                            </a>
-                        )}
-                    </div>
-                    <a
-                        href={event.registrationLink || event.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                            "inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg hover:scale-105 active:scale-95",
-                            event.registrationLink ? "bg-indigo-600 text-white shadow-indigo-500/20 hover:bg-indigo-700" : "bg-slate-900 text-white shadow-slate-900/20 hover:bg-slate-800"
-                        )}
-                    >
-                        <ExternalLink size={14} /> {event.registrationLink ? 'Register Now' : 'Visit Website'}
-                    </a>
                 </div>
             </div>
         </motion.div>

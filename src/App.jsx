@@ -16,6 +16,7 @@ import { useAppStore } from './store';
 import { initNotificationSystem } from './notifications';
 import { initFirebase, subscribeToEvents, getUserData } from './services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { cn } from './utils';
 
 // --- EAGERLY LOADED COMPONENTS (Essential for fast first paint) ---
 import Header from './components/Header';
@@ -38,6 +39,7 @@ const PaymentModal = lazy(() => import('./components/PaymentModal'));
 const TeamInviteModal = lazy(() => import('./components/TeamInviteModal'));
 const JoinTeam = lazy(() => import('./components/JoinTeam'));
 const FeedbackModal = lazy(() => import('./components/FeedbackModal'));
+const ProfileModal = lazy(() => import('./components/ProfileModal'));
 const LegalModal = lazy(() => import('./components/LegalModal'));
 
 /**
@@ -154,9 +156,10 @@ function App() {
 
                     if (firebaseUser) {
                         try {
-                            const { role, teamId } = await getUserData(firebaseUser.uid);
-                            useAppStore.getState().setUserRole(role);
-                            useAppStore.getState().setTeamId(teamId);
+                            const userData = await getUserData(firebaseUser.uid);
+                            useAppStore.getState().setUserRole(userData.role);
+                            useAppStore.getState().setTeamId(userData.teamId);
+                            useAppStore.getState().setUserProfile(userData);
                         } catch (err) {
                             console.error('[Auth] Failed to fetch user data:', err);
                         }
@@ -231,12 +234,13 @@ function App() {
 
     return (
         <ErrorBoundary>
-            {/* Splash Screen Overlay (High Z-Index) */}
+            {/* Splash Screen (High Z-Index) */}
             {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
 
-            {/* Main Application Logic */}
-            {!isLoading ? (
-                user ? (
+            {/* Main Application Content */}
+            {/* We render the main app only when NOT loading, but we keep Splash on top until it completes */}
+            <div className={cn("contents", isLoading && "hidden")}>
+                {user ? (
                     <Router>
                         <div className="min-h-screen bg-gray-50 dark:bg-[#0f172a] transition-colors duration-500 pb-24 lg:pb-0">
                             {/* Fixed Header */}
@@ -255,6 +259,7 @@ function App() {
                                 <EditEventModal />
                                 <PaymentModal />
                                 <TeamInviteModal />
+                                <ProfileModal />
                                 <FeedbackModal />
                                 <LegalModal />
                             </Suspense>
@@ -266,9 +271,9 @@ function App() {
                         </div>
                     </Router>
                 ) : (
-                    <Login />
-                )
-            ) : null}
+                    !isLoading && <Login />
+                )}
+            </div>
         </ErrorBoundary>
     );
 }

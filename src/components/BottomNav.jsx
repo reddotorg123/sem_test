@@ -11,9 +11,9 @@ const BottomNav = () => {
     const userRole = useAppStore((state) => state.userRole);
 
     const navItems = [
-        { path: '/', icon: Home, label: 'Home' },
+        { path: '/', icon: Home, label: 'Dashboard' },
         { path: '/events', icon: List, label: 'Events' },
-        { path: '/discovery', icon: Zap, label: 'Find' },
+        { path: '/discovery', icon: Zap, label: 'Discovery' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         {
             label: 'Upgrade',
@@ -21,7 +21,7 @@ const BottomNav = () => {
             onClick: () => openModal('payment'),
             hideIfUpgrade: true
         },
-        { path: '/analytics', icon: BarChart3, label: 'Stats' }
+        { path: '/analytics', icon: BarChart3, label: 'Analytics' }
     ];
 
     const filteredItems = navItems.filter(item =>

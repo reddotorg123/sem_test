@@ -32,9 +32,7 @@ const StatCard = ({ title, value, icon: Icon, subtitle, colorClass, delay = 0 })
 );
 
 const Analytics = () => {
-    // const navigate = useNavigate(); // Unused but kept for future
-    // const setFilters = useAppStore((state) => state.setFilters); // Unused
-    // const setViewMode = useAppStore((state) => state.setViewMode); // Unused
+    const navigate = useNavigate();
     const userRole = useAppStore((state) => state.userRole);
     const openPaymentModal = () => useAppStore.getState().openModal('payment');
 
@@ -99,6 +97,12 @@ const Analytics = () => {
         if (modalConfig.type === 'participated') {
             return events.filter(e => ['Attended', 'Won', 'Registered'].includes(e.status));
         }
+        if (modalConfig.type === 'prize') {
+            return events.filter(e => (parseFloat(e.prizeAmount) || 0) > 0 && e.status === 'Won');
+        }
+        if (modalConfig.type === 'roi') {
+            return events.filter(e => (parseFloat(e.registrationFee) || 0) > 0);
+        }
         return [];
     }, [events, modalConfig.type]);
 
@@ -127,7 +131,7 @@ const Analytics = () => {
         <div className="pb-20 relative">
             {userRole === 'public' && (
                 <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center rounded-3xl mt-24">
-                    <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-full flex items-center justify-center mb-4 shadow-xl">
+                    <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mb-4 shadow-xl">
                         <Shield size={32} />
                     </div>
                     <h3 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Team Edition Required</h3>
@@ -166,21 +170,25 @@ const Analytics = () => {
                         delay={0.2}
                     />
                 </div>
-                <StatCard
-                    title="Total Prize Won"
-                    value={`₹${(analytics.wonPrize / 1000).toFixed(1)}k`}
-                    icon={DollarSign}
-                    subtitle="GROSS REVENUE"
-                    colorClass="bg-emerald-500"
-                    delay={0.3}
-                />
-                <StatCard
-                    title="Profitability (ROI)"
-                    value={`${analytics.roi.toFixed(0)}%`}
-                    icon={TrendingUp}
-                    colorClass={analytics.roi >= 0 ? "bg-emerald-500" : "bg-rose-500"}
-                    delay={0.4}
-                />
+                <div onClick={() => openAnalyticsModal('prize', 'Revenue Breakdown')} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-95">
+                    <StatCard
+                        title="Total Prize Won"
+                        value={`₹${(analytics.wonPrize / 1000).toFixed(1)}k`}
+                        icon={DollarSign}
+                        subtitle="GROSS REVENUE"
+                        colorClass="bg-emerald-500"
+                        delay={0.3}
+                    />
+                </div>
+                <div onClick={() => openAnalyticsModal('roi', 'Investment Analysis')} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-95">
+                    <StatCard
+                        title="Profitability (ROI)"
+                        value={`${analytics.roi.toFixed(0)}%`}
+                        icon={TrendingUp}
+                        colorClass={analytics.roi >= 0 ? "bg-emerald-500" : "bg-amber-500"}
+                        delay={0.4}
+                    />
+                </div>
             </div>
 
             {/* ... Rest of the existing analytics charts ... */}

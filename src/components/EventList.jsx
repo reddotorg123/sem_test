@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db, EventType, EventStatus, exportEventsToCSV } from '../db';
 import { useAppStore } from '../store';
 import EventCard from './EventCard';
-import { Search, Filter, SortDesc, SlidersHorizontal, ArrowUpDown, Table as TableIcon, LayoutGrid, FileSpreadsheet, ChevronRight, MapPin, Calendar, Clock, Trophy, Zap, ArrowUp, Heart, Terminal, Cpu, Database, Binary, Shield } from 'lucide-react';
+import { Search, Filter, SortDesc, SlidersHorizontal, ArrowUpDown, Table as TableIcon, LayoutGrid, FileSpreadsheet, ChevronRight, MapPin, Calendar, Clock, Trophy, Zap, ArrowUp, Heart, Terminal, Cpu, Database, Binary, Shield, ExternalLink, Globe } from 'lucide-react';
 import { cn } from '../utils';
 import { format, isSameDay } from 'date-fns';
 import { exportToCSV, downloadCSV } from '../csvUtils';
@@ -84,7 +84,7 @@ const TableView = React.memo(({ events }) => {
                                     </div>
                                 </td>
                                 <td className="px-8 py-6 font-black text-emerald-600 dark:text-emerald-400 text-base tabular-nums">
-                                    {event.prizeAmount > 0 ? `₹${event.prizeAmount.toLocaleString()}` : '---'}
+                                    {(parseFloat(event.prizeAmount) || 0) > 0 ? `₹${Number(event.prizeAmount).toLocaleString()}` : '---'}
                                 </td>
                                 <td className="px-8 py-6">
                                     <div className="flex gap-2 no-click" onClick={(e) => e.stopPropagation()}>
@@ -224,12 +224,12 @@ const EventList = () => {
 
         filtered.sort((a, b) => {
             let res = 0;
-            if (sortBy === 'priorityScore') res = b.priorityScore - a.priorityScore;
-            else if (sortBy === 'prizeAmount') res = (b.prizeAmount || 0) - (a.prizeAmount || 0);
+            if (sortBy === 'priorityScore') res = (b.priorityScore || 0) - (a.priorityScore || 0);
+            else if (sortBy === 'prizeAmount') res = (parseFloat(b.prizeAmount) || 0) - (parseFloat(a.prizeAmount) || 0);
             else if (sortBy === 'deadline' || sortBy === 'startDate') {
                 res = new Date(a[sortBy]) - new Date(b[sortBy]);
             }
-            return sortOrder === 'asc' ? res : -res;
+            return sortOrder === 'desc' ? res : -res;
         });
         return filtered;
     }, [events, filters, sortBy, sortOrder]);
@@ -321,95 +321,101 @@ const EventList = () => {
                         </div>
                     </div>
 
-                    <div className="mt-8 pt-8 border-t border-slate-50 dark:border-slate-800/50 flex flex-wrap items-center justify-between gap-6">
-                        <div className="flex flex-wrap items-center gap-6">
-                            <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sort By</span>
-                                <div className="flex p-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    {['priorityScore', 'deadline', 'prizeAmount'].map(f => (
-                                        <button
-                                            key={f}
-                                            onClick={() => setSorting(f, sortOrder)}
-                                            className={cn("px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", sortBy === f ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
-                                        >
-                                            {f.replace('priorityScore', 'Priority').replace('deadline', 'Deadline').replace('prizeAmount', 'Prize')}
-                                        </button>
-                                    ))}
+                    <div className="mt-8 pt-8 border-t border-slate-50 dark:border-slate-800/50 flex flex-col gap-6">
+                        {/* Top Filters Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-6">
+                            <div className="flex flex-wrap items-center gap-6">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Sort By</span>
+                                    <div className="flex p-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        {['priorityScore', 'deadline', 'prizeAmount'].map(f => (
+                                            <button
+                                                key={f}
+                                                onClick={() => setSorting(f, sortOrder)}
+                                                className={cn("px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all", sortBy === f ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
+                                            >
+                                                {f.replace('priorityScore', 'Priority').replace('deadline', 'Deadline').replace('prizeAmount', 'Prize')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => setSorting(sortBy, sortOrder === 'asc' ? 'desc' : 'asc')} className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 dark:border-slate-800 shadow-sm">
+                                        <ArrowUpDown size={18} strokeWidth={3} />
+                                    </button>
                                 </div>
-                                <button onClick={() => setSorting(sortBy, sortOrder === 'asc' ? 'desc' : 'asc')} className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl text-slate-500 hover:text-indigo-600 transition-colors border border-slate-100 dark:border-slate-800">
-                                    <ArrowUpDown size={18} strokeWidth={3} />
-                                </button>
-                            </div>
 
-                            <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Time Filter</span>
-                                <select
-                                    value={filters.dateRange}
-                                    onChange={(e) => setFilters({ dateRange: e.target.value })}
-                                    className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-2xl px-6 py-3 outline-none font-black text-[10px] uppercase tracking-widest text-slate-500 appearance-none shadow-inner"
-                                >
-                                    <option value="all">Any Time</option>
-                                    <option value="today">Today</option>
-                                    <option value="week">This Week</option>
-                                    <option value="month">This Month</option>
-                                    <option value="upcoming">Upcoming</option>
-                                    <option value="completed">Past Events</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Prize Pool</span>
-                                <select
-                                    value={filters.prizeRange}
-                                    onChange={(e) => setFilters({ prizeRange: e.target.value })}
-                                    className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-2xl px-6 py-3 outline-none font-black text-[10px] uppercase tracking-widest text-slate-500 appearance-none shadow-inner"
-                                >
-                                    <option value="all">Any Prize</option>
-                                    <option value="free">No Prize</option>
-                                    <option value="small">{"< ₹10k"}</option>
-                                    <option value="medium">₹10k - ₹50k</option>
-                                    <option value="large">{"≥ ₹50k"}</option>
-                                </select>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Time Filter</span>
+                                    <select
+                                        value={filters.dateRange}
+                                        onChange={(e) => setFilters({ dateRange: e.target.value })}
+                                        className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-2xl px-6 py-3 outline-none font-black text-[10px] uppercase tracking-widest text-slate-500 appearance-none shadow-inner"
+                                    >
+                                        <option value="all">Any Time</option>
+                                        <option value="today">Today</option>
+                                        <option value="week">This Week</option>
+                                        <option value="month">This Month</option>
+                                        <option value="upcoming">Upcoming</option>
+                                        <option value="completed">Past Events</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Prize Pool</span>
+                                    <select
+                                        value={filters.prizeRange}
+                                        onChange={(e) => setFilters({ prizeRange: e.target.value })}
+                                        className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-2xl px-6 py-3 outline-none font-black text-[10px] uppercase tracking-widest text-slate-500 appearance-none shadow-inner"
+                                    >
+                                        <option value="all">Any Prize</option>
+                                        <option value="free">No Prize</option>
+                                        <option value="small">{"< ₹10k"}</option>
+                                        <option value="medium">₹10k - ₹50k</option>
+                                        <option value="large">{"≥ ₹50k"}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Custom Date Range Row */}
-                        <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-50 dark:border-slate-800/50">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Date Range</span>
-                            <div className="flex items-center gap-2">
-                                <label className="text-[9px] font-bold text-slate-400 uppercase">From</label>
-                                <input
-                                    type="date"
-                                    value={filters.dateFrom || ''}
-                                    onChange={(e) => setFilters({ dateFrom: e.target.value })}
-                                    className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-xl px-4 py-2.5 outline-none font-bold text-xs text-slate-600 dark:text-slate-300 shadow-inner"
-                                />
+                        {/* Bottom Filters Row / Custom Dates */}
+                        <div className="flex flex-wrap items-center justify-between gap-6 pt-6 border-t border-slate-50 dark:border-slate-800/50">
+                            <div className="flex flex-wrap items-center gap-4">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Date Range</span>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-[9px] font-bold text-slate-400 uppercase">From</label>
+                                    <input
+                                        type="date"
+                                        value={filters.dateFrom || ''}
+                                        onChange={(e) => setFilters({ dateFrom: e.target.value })}
+                                        className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-xl px-4 py-2.5 outline-none font-bold text-xs text-slate-600 dark:text-slate-300 shadow-inner"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-[9px] font-bold text-slate-400 uppercase">To</label>
+                                    <input
+                                        type="date"
+                                        value={filters.dateTo || ''}
+                                        onChange={(e) => setFilters({ dateTo: e.target.value })}
+                                        className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-xl px-4 py-2.5 outline-none font-bold text-xs text-slate-600 dark:text-slate-300 shadow-inner"
+                                    />
+                                </div>
+                                {(filters.dateFrom || filters.dateTo) && (
+                                    <button
+                                        onClick={() => setFilters({ dateFrom: '', dateTo: '' })}
+                                        className="text-[9px] font-black uppercase tracking-widest text-rose-500 shadow-sm px-3 py-2 rounded-xl bg-rose-50 border border-rose-100 dark:bg-rose-500/10 hover:bg-rose-100 transition-colors"
+                                    >
+                                        Clear Dates
+                                    </button>
+                                )}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-[9px] font-bold text-slate-400 uppercase">To</label>
-                                <input
-                                    type="date"
-                                    value={filters.dateTo || ''}
-                                    onChange={(e) => setFilters({ dateTo: e.target.value })}
-                                    className="bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent focus:border-indigo-600 rounded-xl px-4 py-2.5 outline-none font-bold text-xs text-slate-600 dark:text-slate-300 shadow-inner"
-                                />
-                            </div>
-                            {(filters.dateFrom || filters.dateTo) && (
-                                <button
-                                    onClick={() => setFilters({ dateFrom: '', dateTo: '' })}
-                                    className="text-[9px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 transition-colors"
-                                >
-                                    Clear Dates
-                                </button>
-                            )}
-                        </div>
 
-                        <div className="flex justify-end mt-4">
-                            <button onClick={() => setFilters({ search: '', status: 'all', eventType: 'all', dateRange: 'all', prizeRange: 'all', showShortlisted: false, dateFrom: '', dateTo: '' })} className="text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-rose-500 transition-colors">Reset All Filters</button>
+                            <button onClick={() => setFilters({ search: '', status: 'all', eventType: 'all', dateRange: 'all', prizeRange: 'all', showShortlisted: false, dateFrom: '', dateTo: '' })} className="text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-all shadow-sm">
+                                Reset All Filters
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="flex items-center justify-between mb-8 px-2">
+            <div className="flex items-center justify-between mb-8 px-2">
                     <div className="flex items-center gap-4">
                         <div className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse shadow-[0_0_8px_rgba(79,70,229,1)]" />
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{filteredEvents.length} SIGNAL(S) IDENTIFIED</span>
@@ -438,15 +444,20 @@ const EventList = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Float Scroll To Top */}
-                <AnimatePresence>
-                    {showScrollTop && (
-                        <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} onClick={scrollToTop} className="fixed bottom-32 right-8 w-16 h-16 bg-slate-900 text-white rounded-2xl shadow-2xl z-50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
-                            <ArrowUp size={24} strokeWidth={3} />
-                        </motion.button>
-                    )}
-                </AnimatePresence>
-            </div>
+            {/* Float Scroll To Top */}
+            <AnimatePresence>
+                {showScrollTop && (
+                    <motion.button 
+                        initial={{ scale: 0, y: 20 }} 
+                        animate={{ scale: 1, y: 0 }} 
+                        exit={{ scale: 0, y: 20 }} 
+                        onClick={scrollToTop} 
+                        className="fixed bottom-24 sm:bottom-32 right-6 sm:right-12 w-14 h-14 sm:w-16 sm:h-16 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl z-50 flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20"
+                    >
+                        <ArrowUp size={24} strokeWidth={3} />
+                    </motion.button>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

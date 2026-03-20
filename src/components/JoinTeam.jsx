@@ -42,6 +42,12 @@ const JoinTeam = () => {
             return;
         }
 
+        if (userRole === 'public') {
+            setErrorMsg("Team Edition Required. Only paid subscribers can join teams. Please upgrade your account from the Command Center first.");
+            setStatus('error');
+            return;
+        }
+
         if (userRole === 'team_leader' || userRole === 'admin') {
             setErrorMsg("You are already a Team Leader or Admin. You cannot join another team.");
             setStatus('error');
@@ -53,12 +59,12 @@ const JoinTeam = () => {
             if (db && auth?.currentUser) {
                 const userRef = doc(db, 'users', auth.currentUser.uid);
                 await updateDoc(userRef, {
-                    role: 'team_member',
+                    role: 'member',
                     teamId: teamId
                 });
 
                 // Update local role and team
-                setUserRole('team_member');
+                setUserRole('member');
                 setTeamId(teamId);
                 setStatus('success');
 

@@ -16,8 +16,8 @@ export default defineConfig({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
             manifest: {
-                name: 'Event Manager',
-                short_name: 'EventManager',
+                name: 'SEM Student Event Manager',
+                short_name: 'SEM',
                 description: 'Offline-first event management for students',
                 theme_color: '#4f46e5',
                 background_color: '#ffffff',

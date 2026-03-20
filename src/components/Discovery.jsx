@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Globe, Zap, ArrowRight, Download, ExternalLink, Sparkles, Filter, Trophy, Users, Terminal, Cpu, ShieldCheck } from 'lucide-react';
+import { Search, Globe, Zap, ArrowRight, Download, ExternalLink, Sparkles, Filter, Trophy, Users, Terminal, Cpu, ShieldCheck, Clock } from 'lucide-react';
 import { cn } from '../utils';
 import { addEvent, EventType } from '../db';
 
@@ -16,7 +16,7 @@ const Discovery = () => {
         { id: 'google', name: 'Google', icon: Globe, color: 'text-blue-500' },
         { id: 'unstop', name: 'Unstop', icon: Zap, color: 'text-amber-500' },
         { id: 'devpost', name: 'Devpost', icon: ExternalLink, color: 'text-emerald-500' },
-        { id: 'mlh', name: 'MLH', icon: Trophy, color: 'text-rose-500' },
+        { id: 'mlh', name: 'MLH', icon: Trophy, color: 'text-indigo-500' },
         { id: 'meetup', name: 'Meetup', icon: Users, color: 'text-violet-500' },
     ];
 
@@ -289,12 +289,15 @@ const Discovery = () => {
                                                 </div>
                                                 <div>
                                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Deadline</span>
-                                                    <span className="text-xs font-black text-rose-600">{event.registrationDeadline}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={12} className="text-amber-500" />
+                                                        <span className="text-xs font-black text-amber-600">{event.registrationDeadline}</span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Registration</span>
-                                                    <a href={event.registrationLink || event.website} target="_blank" rel="noopener noreferrer" className="text-xs font-black text-indigo-600 hover:underline">
-                                                        {event.registrationLink ? 'Form Link' : 'Via Website'}
+                                                <div className="col-span-2">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Registration Portal</span>
+                                                    <a href={event.registrationLink || event.website} target="_blank" rel="noopener noreferrer" className="text-xs font-black text-indigo-600 hover:underline flex items-center gap-1.5">
+                                                        {event.platform} Link <ExternalLink size={10} />
                                                     </a>
                                                 </div>
                                             </div>

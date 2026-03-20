@@ -4,7 +4,7 @@ import { db, exportEventsToCSV } from '../db';
 import { exportToCSV, downloadCSV } from '../csvUtils';
 import { requestNotificationPermission } from '../notifications';
 import { bulkSyncToFirestore, getAllUsers, updateUserRole, getPaymentRequests, approvePaymentRequest, rejectPaymentRequest } from '../services/firebase';
-import { Bell, Download, Trash2, Moon, Sun, Shield, Database, Smartphone, Cloud, Loader2, ArrowUpFromLine, Info, ChevronRight, LogOut, CheckCircle2, ShieldCheck, UserCog } from 'lucide-react';
+import { Bell, Download, Trash2, Moon, Sun, Shield, Database, Smartphone, Cloud, Loader2, ArrowUpFromLine, Info, ChevronRight, LogOut, CheckCircle2, ShieldCheck, UserCog, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { cn } from '../utils';
 
 const Settings = () => {
@@ -23,6 +23,15 @@ const Settings = () => {
     const [loadingUsers, setLoadingUsers] = React.useState(false);
     const [paymentRequests, setPaymentRequests] = React.useState([]);
     const [loadingPayments, setLoadingPayments] = React.useState(false);
+    const [maskKeys, setMaskKeys] = React.useState(true);
+
+    const maskSensitiveConfig = (config) => {
+        const masked = { ...config };
+        if (masked.apiKey) masked.apiKey = masked.apiKey.slice(0, 6) + "****************";
+        if (masked.messagingSenderId) masked.messagingSenderId = "*********";
+        if (masked.appId) masked.appId = masked.appId.slice(0, 6) + "****************";
+        return masked;
+    };
 
     const userRole = useAppStore((state) => state.userRole);
 
@@ -192,74 +201,94 @@ const Settings = () => {
                 <p className="text-slate-500 font-medium">Control your team's cloud infrastructure and preferences.</p>
             </div>
 
-            <SettingSection title="Team Cloud Setup" description="Configure your real-time database" icon={Cloud}>
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {/* Local Mode */}
-                        <div className={cn(
-                            "p-5 rounded-2xl border flex flex-col justify-between gap-4 transition-all",
-                            cloudProvider === 'local'
-                                ? "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20"
-                                : "bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800"
-                        )}>
-                            <div>
-                                <h4 className="font-black text-sm uppercase tracking-tight flex items-center gap-2">
-                                    {cloudProvider === 'local' ? <CheckCircle2 size={16} className="text-amber-500" /> : <Smartphone size={16} className="text-slate-400" />}
-                                    Local Only
-                                </h4>
-                                <p className="text-xs text-slate-500 mt-1">Data stays on this device. Fastest performance.</p>
+            {userRole === 'admin' && (
+                <SettingSection title="Team Cloud Setup" description="Configure your real-time database" icon={Cloud}>
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {/* Local Mode */}
+                            <div className={cn(
+                                "p-5 rounded-2xl border flex flex-col justify-between gap-4 transition-all",
+                                cloudProvider === 'local'
+                                    ? "bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20"
+                                    : "bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800"
+                            )}>
+                                <div>
+                                    <h4 className="font-black text-sm uppercase tracking-tight flex items-center gap-2">
+                                        {cloudProvider === 'local' ? <CheckCircle2 size={16} className="text-amber-500" /> : <Smartphone size={16} className="text-slate-400" />}
+                                        Local Only
+                                    </h4>
+                                    <p className="text-xs text-slate-500 mt-1">Data stays on this device. Fastest performance.</p>
+                                </div>
+                                <button
+                                    onClick={() => setCloudProvider('local')}
+                                    className={cn(
+                                        "btn h-10 text-xs font-black uppercase",
+                                        cloudProvider === 'local' ? "btn-secondary" : "btn-primary"
+                                    )}
+                                >
+                                    {cloudProvider === 'local' ? 'Active' : 'Select Local'}
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setCloudProvider('local')}
-                                className={cn(
-                                    "btn h-10 text-xs font-black uppercase",
-                                    cloudProvider === 'local' ? "btn-secondary" : "btn-primary"
-                                )}
-                            >
-                                {cloudProvider === 'local' ? 'Active' : 'Select Local'}
-                            </button>
+
+                            {/* Firebase Mode */}
+                            <div className={cn(
+                                "p-5 rounded-2xl border flex flex-col justify-between gap-4 transition-all",
+                                cloudProvider === 'firestore'
+                                    ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20"
+                                    : "bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800"
+                            )}>
+                                <div>
+                                    <h4 className="font-black text-sm uppercase tracking-tight flex items-center gap-2">
+                                        {cloudProvider === 'firestore' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Cloud size={16} className="text-slate-400" />}
+                                        Firebase Sync
+                                    </h4>
+                                    <p className="text-xs text-slate-500 mt-1">Direct sync with your Firebase project.</p>
+                                </div>
+                                <button
+                                    onClick={() => setCloudProvider('firestore')}
+                                    className={cn(
+                                        "btn h-10 text-xs font-black uppercase",
+                                        cloudProvider === 'firestore' ? "btn-secondary" : "btn-primary"
+                                    )}
+                                >
+                                    {cloudProvider === 'firestore' ? 'Active' : 'Select Firebase'}
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Firebase Mode */}
-                        <div className={cn(
-                            "p-5 rounded-2xl border flex flex-col justify-between gap-4 transition-all",
-                            cloudProvider === 'firestore'
-                                ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20"
-                                : "bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800"
-                        )}>
-                            <div>
-                                <h4 className="font-black text-sm uppercase tracking-tight flex items-center gap-2">
-                                    {cloudProvider === 'firestore' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Cloud size={16} className="text-slate-400" />}
-                                    Firebase Sync
-                                </h4>
-                                <p className="text-xs text-slate-500 mt-1">Direct sync with your Firebase project.</p>
-                            </div>
-                            <button
-                                onClick={() => setCloudProvider('firestore')}
-                                className={cn(
-                                    "btn h-10 text-xs font-black uppercase",
-                                    cloudProvider === 'firestore' ? "btn-secondary" : "btn-primary"
+                        {cloudProvider === 'firestore' && (
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-4 duration-500">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Firebase Project Config</label>
+                                    <button
+                                        onClick={() => setMaskKeys(!maskKeys)}
+                                        className="p-1 px-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-[10px] font-black uppercase text-slate-500 flex items-center gap-1.5 hover:text-indigo-600 transition-colors"
+                                    >
+                                        {maskKeys ? <Eye size={12} /> : <EyeOff size={12} />}
+                                        {maskKeys ? 'Show Keys' : 'Mask Keys'}
+                                    </button>
+                                </div>
+                                <textarea
+                                    value={maskKeys ? JSON.stringify(maskSensitiveConfig(firebaseConfig), null, 2) : JSON.stringify(firebaseConfig, null, 2)}
+                                    onChange={(e) => {
+                                        if (maskKeys) return; // Prevent editing while masked
+                                        try { setFirebaseConfig(JSON.parse(e.target.value)); } catch (e) { }
+                                    }}
+                                    readOnly={maskKeys}
+                                    className={cn("input font-mono text-xs py-3 min-h-[150px] w-full", maskKeys && "opacity-80")}
+                                    placeholder='{ "apiKey": "...", "projectId": "...", ... }'
+                                />
+                                {maskKeys && (
+                                    <p className="text-[9px] font-bold text-amber-600 dark:text-amber-500/80 mt-2 uppercase tracking-widest flex items-center gap-1.5">
+                                        <ShieldAlert size={10} />
+                                        Unmask to edit configuration
+                                    </p>
                                 )}
-                            >
-                                {cloudProvider === 'firestore' ? 'Active' : 'Select Firebase'}
-                            </button>
-                        </div>
-
+                            </div>
+                        )}
                     </div>
-
-                    {cloudProvider === 'firestore' && (
-                        <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-4 duration-500">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-3">Firebase Project Config</label>
-                            <textarea
-                                value={JSON.stringify(firebaseConfig, null, 2)}
-                                onChange={(e) => { try { setFirebaseConfig(JSON.parse(e.target.value)); } catch (e) { } }}
-                                className="input font-mono text-xs py-3 min-h-[150px] w-full"
-                                placeholder='{ "apiKey": "...", "projectId": "...", ... }'
-                            />
-                        </div>
-                    )}
-                </div>
-            </SettingSection>
+                </SettingSection>
+            )}
 
             {userRole === 'admin' && (
                 <SettingSection title="Payment Verification" description="Approve or reject plan upgrade requests" icon={ShieldCheck}>
@@ -284,7 +313,7 @@ const Settings = () => {
                                                         "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
                                                         req.status === 'pending' ? "bg-amber-100 text-amber-600" :
                                                             req.status === 'approved' ? "bg-emerald-100 text-emerald-600" :
-                                                                "bg-rose-100 text-rose-600"
+                                                                 "bg-indigo-100 text-indigo-600"
                                                     )}>
                                                         {req.status}
                                                     </span>
@@ -310,7 +339,7 @@ const Settings = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleRejectPayment(req.id)}
-                                                    className="flex-1 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-rose-100 transition-all"
+                                                    className="flex-1 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-100 transition-all"
                                                 >
                                                     Reject
                                                 </button>
@@ -438,7 +467,7 @@ const Settings = () => {
                         <div className="flex items-center gap-4"><Database size={20} className="text-secondary" /><div className="text-left"><p className="font-bold">Cleanup Database</p><p className="text-xs opacity-60">Remove duplicates & garbage data</p></div></div>
                         <ChevronRight size={18} />
                     </button>
-                    <button onClick={handleClearAll} className="w-full h-14 flex justify-between items-center px-6 bg-rose-50 dark:bg-rose-500/10 text-rose-600 rounded-2xl border border-rose-100 dark:border-rose-500/20">
+                    <button onClick={handleClearAll} className="w-full h-14 flex justify-between items-center px-6 bg-amber-50 dark:bg-amber-500/10 text-amber-600 rounded-2xl border border-amber-100 dark:border-amber-500/20">
                         <div className="flex items-center gap-4"><Trash2 size={20} /><div className="text-left"><p className="font-bold">Wipe Local Database</p><p className="text-xs opacity-60">Reset internal event storage</p></div></div>
                         <ChevronRight size={18} />
                     </button>

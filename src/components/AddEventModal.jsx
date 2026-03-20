@@ -270,7 +270,7 @@ const AddEventModal = () => {
                                     <div className="form-group">
                                         <label className="label-premium">Event Venue</label>
                                         <div className="relative">
-                                            <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-rose-500" size={20} />
+                                            <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-indigo-500" size={20} />
                                             <input type="text" name="location" value={formData.location} onChange={handleChange} className="input-premium pl-16 font-black" placeholder="Campus Name / Venue" />
                                         </div>
                                     </div>
@@ -291,10 +291,10 @@ const AddEventModal = () => {
                                             <div className={cn("w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all", formData.isOnline ? "bg-indigo-600 border-indigo-600" : "border-slate-300")}><Check size={16} className="text-white" /></div>
                                             <div><span className="block text-[11px] font-black uppercase tracking-widest text-indigo-700 dark:text-indigo-400">Online Event</span><span className="text-[10px] text-slate-500">Enable for virtual events</span></div>
                                         </label>
-                                        <label className="flex items-center gap-6 p-6 rounded-[2rem] bg-rose-50 dark:bg-rose-950/20 border-2 border-transparent has-[:checked]:border-rose-600 cursor-pointer group transition-all">
+                                        <label className="flex items-center gap-6 p-6 rounded-[2rem] bg-emerald-50 dark:bg-emerald-950/20 border-2 border-transparent has-[:checked]:border-emerald-600 cursor-pointer group transition-all">
                                             <input type="checkbox" name="accommodation" checked={formData.accommodation} onChange={handleChange} className="hidden" />
-                                            <div className={cn("w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all", formData.accommodation ? "bg-rose-600 border-rose-600" : "border-slate-300")}><Check size={16} className="text-white" /></div>
-                                            <div><span className="block text-[11px] font-black uppercase tracking-widest text-rose-700 dark:text-rose-400">Accommodation</span><span className="text-[10px] text-slate-500">Stay provided by college</span></div>
+                                            <div className={cn("w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all", formData.accommodation ? "bg-emerald-600 border-emerald-600" : "border-slate-300")}><Check size={16} className="text-white" /></div>
+                                            <div><span className="block text-[11px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Accommodation</span><span className="text-[10px] text-slate-500">Stay provided by college</span></div>
                                         </label>
                                     </div>
                                 </div>
@@ -308,8 +308,8 @@ const AddEventModal = () => {
                                 <div className="form-group">
                                     <label className="label-premium">Registration Link</label>
                                     <div className="relative">
-                                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-rose-500" size={20} />
-                                        <input type="url" name="registrationLink" value={formData.registrationLink} onChange={handleChange} className="input-premium pl-16 text-rose-600 font-black" placeholder="Google Form / Registration URL" />
+                                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-indigo-500" size={20} />
+                                        <input type="url" name="registrationLink" value={formData.registrationLink} onChange={handleChange} className="input-premium pl-16 text-indigo-600 font-black" placeholder="Google Form / Registration URL" />
                                     </div>
                                 </div>
                             </div>
@@ -325,6 +325,10 @@ const AddEventModal = () => {
                                     <div className="form-group">
                                         <label className="label-premium">Eligibility Criteria</label>
                                         <input type="text" name="eligibility" value={formData.eligibility} onChange={handleChange} className="input-premium" placeholder="e.g. All Departments" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label-premium">Event Description</label>
+                                        <textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="input-premium min-h-[100px] resize-none pt-4" placeholder="Brief about the event..."></textarea>
                                     </div>
                                 </div>
                                 <div className="space-y-6 bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl">
@@ -352,7 +356,7 @@ const AddEventModal = () => {
                                             </label>
                                         )}
                                     </div>
-                                    <button type="button" onClick={handleAIAnalysis} disabled={isAnalyzing || (!formData.posterBlob && !formData.posterUrl)} className={cn("w-full h-16 rounded-2xl flex items-center justify-center gap-4 font-black uppercase text-[11px] tracking-[0.3em] transition-all shadow-2xl", isAnalyzing ? "bg-slate-100 text-slate-400" : "bg-gradient-to-r from-rose-500 via-indigo-600 to-violet-700 text-white hover:scale-105 shadow-indigo-500/30")}>
+                                    <button type="button" onClick={handleAIAnalysis} disabled={isAnalyzing || (!formData.posterBlob && !formData.posterUrl)} className={cn("w-full h-16 rounded-2xl flex items-center justify-center gap-4 font-black uppercase text-[11px] tracking-[0.3em] transition-all shadow-2xl", isAnalyzing ? "bg-slate-100 text-slate-400" : "bg-gradient-to-r from-emerald-500 via-indigo-600 to-violet-700 text-white hover:scale-105 shadow-indigo-500/30")}>
                                         {isAnalyzing ? <div className="w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin" /> : <><Sparkles size={20} /> Start AI Analysis</>}
                                     </button>
                                 </div>
@@ -374,7 +378,7 @@ const AddEventModal = () => {
                 {/* Modal Actions */}
                 <div className="px-4 sm:px-10 py-4 sm:py-8 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 sm:gap-6">
                     <button type="button" onClick={() => closeModal('addEvent')} className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancel</button>
-                    <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 sm:px-12 h-12 sm:h-16 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-wider sm:tracking-[0.4em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 sm:gap-4">
+                    <button type="submit" form="add-event-form" disabled={isSubmitting} className="px-6 sm:px-12 h-12 sm:h-16 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-wider sm:tracking-[0.4em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 sm:gap-4">
                         {isSubmitting ? <div className="w-5 h-5 border-4 border-slate-400 border-t-white rounded-full animate-spin" /> : <><Save size={20} /> Save Event</>}
                     </button>
                 </div>
