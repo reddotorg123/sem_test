@@ -36,7 +36,6 @@ const TeamInviteModal = () => {
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
 
     const generateLink = async () => {
         setIsGenerating(true);
@@ -106,28 +105,39 @@ const TeamInviteModal = () => {
         }
     };
 
-    if (userRole === 'public') {
-        return (
-            <AnimatePresence>
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => closeModal('teamInvite')} />
-                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 text-center shadow-2xl">
-                        <Users size={32} className="mx-auto mb-4 text-slate-400" />
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Team Edition Required</h3>
-                        <p className="text-sm font-bold text-slate-500 mb-6">Upgrade to add up to 10 team members.</p>
-                        <button onClick={() => closeModal('teamInvite')} className="w-full py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold">Close</button>
-                    </motion.div>
-                </div>
-            </AnimatePresence>
-        );
-    }
-
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => closeModal('teamInvite')} />
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        onClick={() => closeModal('teamInvite')}
+                    />
 
-                <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 overflow-hidden">
+                    {userRole === 'public' ? (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 text-center shadow-2xl"
+                        >
+                            <Users size={32} className="mx-auto mb-4 text-slate-400" />
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Team Edition Required</h3>
+                            <p className="text-sm font-bold text-slate-500 mb-6">Upgrade to add up to 10 team members.</p>
+                            <button onClick={() => closeModal('teamInvite')} className="w-full py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold">Close</button>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 overflow-hidden"
+                        >
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 mb-4">
@@ -201,8 +211,10 @@ const TeamInviteModal = () => {
                             )}
                         </div>
                     </div>
-                </motion.div>
-            </div>
+                        </motion.div>
+                    )}
+                </div>
+            )}
         </AnimatePresence>
     );
 };
