@@ -21,7 +21,6 @@ const PaymentModal = () => {
     const [copied, setCopied] = useState(false);
     const [maskKeys, setMaskKeys] = useState(true);
 
-    if (!isOpen) return null;
 
     const adminGPayNumber = "8015024729";
     const adminVPA = "jagadish2k2006-2@oksbi";
@@ -147,21 +146,23 @@ const PaymentModal = () => {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                    onClick={() => !isProcessing && closeModal('payment')}
-                />
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        onClick={() => !isProcessing && closeModal('payment')}
+                    />
 
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 overflow-hidden max-h-[90vh] overflow-y-auto"
-                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 overflow-hidden max-h-[90vh] overflow-y-auto"
+                    >
                     {!isSuccess ? (
                         <>
                             <div className="flex justify-between items-start mb-6">
@@ -339,7 +340,8 @@ const PaymentModal = () => {
                     )}
                 </motion.div>
             </div>
-        </AnimatePresence>
+        )}
+    </AnimatePresence>
     );
 };
 

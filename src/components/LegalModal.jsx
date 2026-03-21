@@ -11,7 +11,6 @@ const LegalModal = () => {
     // activeTab can be: 'privacy', 'terms', 'about', 'contact'
     const [activeTab, setActiveTab] = useState('privacy');
 
-    if (!isOpen) return null;
 
     const tabs = [
         { id: 'privacy', label: 'Privacy Policy', icon: Shield },
@@ -22,21 +21,23 @@ const LegalModal = () => {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                    onClick={() => closeModal('legal')}
-                />
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 text-left">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        onClick={() => closeModal('legal')}
+                    />
 
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[80vh] md:h-[600px]"
-                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[80vh] md:h-[600px]"
+                    >
                     {/* Sidebar */}
                     <div className="w-full md:w-64 bg-slate-50 dark:bg-slate-800/50 border-r border-slate-100 dark:border-slate-800 flex flex-col pt-6 shrink-0">
                         <div className="px-6 mb-6">
@@ -126,7 +127,8 @@ const LegalModal = () => {
                     </div>
                 </motion.div>
             </div>
-        </AnimatePresence>
+        )}
+    </AnimatePresence>
     );
 };
 

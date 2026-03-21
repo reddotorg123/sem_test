@@ -176,9 +176,6 @@ const EditEventModal = () => {
             setIsSubmitting(false);
         }
     };
-
-    if (!isOpen || !event) return null;
-
     const tabs = [
         { id: 'basic', label: 'General', icon: Info },
         { id: 'logistics', label: 'Logistics', icon: MapPin },
@@ -187,22 +184,25 @@ const EditEventModal = () => {
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-                onClick={() => closeModal('editEvent')}
-            />
+        <AnimatePresence>
+            {isOpen && event && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        onClick={() => closeModal('editEvent')}
+                    />
 
-            <motion.div
-                layoutId="editModal"
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-[95%] sm:max-w-2xl lg:max-w-4xl bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 overflow-hidden flex flex-col max-h-[90vh]"
-            >
+                    <motion.div
+                        layoutId="editModal"
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-[95%] sm:max-w-2xl lg:max-w-4xl bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 overflow-hidden flex flex-col max-h-[90vh]"
+                    >
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-800 p-6 sm:p-8 text-white relative">
                     <div className="absolute top-0 right-0 p-4 sm:p-8">
@@ -495,8 +495,10 @@ const EditEventModal = () => {
                         </button>
                     </div>
                 </form>
-            </motion.div>
-        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
     );
 };
 

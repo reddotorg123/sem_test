@@ -51,24 +51,25 @@ const ImportCSVModal = () => {
         closeModal('importCSV');
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
-                onClick={handleClose}
-            />
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
+                        onClick={handleClose}
+                    />
 
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col"
-            >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col"
+                    >
                 {/* Header Subsystem */}
                 <div className="bg-slate-950 p-6 sm:p-8 text-white flex items-center justify-between border-b border-white/10 relative">
                     <div className="flex items-center gap-4">
@@ -226,8 +227,10 @@ const ImportCSVModal = () => {
                         </button>
                     </div>
                 )}
-            </motion.div>
-        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
     );
 };
 

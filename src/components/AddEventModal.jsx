@@ -159,8 +159,6 @@ const AddEventModal = () => {
         }
     };
 
-    if (!isOpen) return null;
-
     const tabs = [
         { id: 'basic', label: 'Basic Info', icon: Terminal },
         { id: 'logistics', label: 'Logistics', icon: Globe },
@@ -169,14 +167,24 @@ const AddEventModal = () => {
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => closeModal('addEvent')} />
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        onClick={() => closeModal('addEvent')}
+                    />
 
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 30 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-[2rem] md:rounded-[3rem] shadow-[0_64px_128px_-24px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col max-h-[100vh] sm:max-h-[95vh]"
-            >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-[2rem] md:rounded-[3rem] shadow-[0_64px_128px_-24px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col max-h-[100vh] sm:max-h-[95vh]"
+                    >
                 {/* Header Subsystem */}
                 <div className="bg-slate-900 p-4 sm:p-8 text-white relative flex items-center justify-between border-b border-white/10">
                     <div className="flex items-center gap-5">
@@ -384,8 +392,10 @@ const AddEventModal = () => {
                         {isSubmitting ? <div className="w-5 h-5 border-4 border-slate-400 border-t-white rounded-full animate-spin" /> : <><Save size={20} /> Save Event</>}
                     </button>
                 </div>
-            </motion.div>
-        </div >
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
     );
 };
 

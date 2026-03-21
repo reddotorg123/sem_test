@@ -158,25 +158,26 @@ const EventDetailsModal = () => {
         await updateEvent(selectedEvent, { status: newStatus });
     };
 
-    if (!isOpen || !event) return null;
+    return (
+        <AnimatePresence>
+            {isOpen && event && ReactDOM.createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
+                        onClick={() => closeModal('eventDetails')}
+                    />
 
-    return ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
-                onClick={() => closeModal('eventDetails')}
-            />
-
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="relative w-full max-w-[92%] sm:max-w-md md:max-w-lg bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[1.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 overflow-hidden flex flex-col max-h-[88vh]"
-            >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative w-full max-w-[92%] sm:max-w-md md:max-w-lg bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[1.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 overflow-hidden flex flex-col max-h-[88vh]"
+                    >
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-800 px-4 py-3 sm:px-5 sm:py-4 text-white relative shrink-0">
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -448,8 +449,11 @@ const EventDetailsModal = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>,
-        document.body
+                </motion.div>
+            </div>,
+            document.body
+        )}
+    </AnimatePresence>
     );
 };
 

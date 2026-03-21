@@ -156,11 +156,16 @@ const Header = () => {
                                         )}
 
                                         <button
-                                            onClick={() => { setIsProfileOpen(false); openModal('profile'); }}
-                                            className="w-full text-left px-4 py-3 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-3"
-                                        >
-                                            <User size={16} className="text-indigo-500" /> Personalize Profile
-                                        </button>
+                                             onClick={(e) => { 
+                                                 e.stopPropagation();
+                                                 e.preventDefault();
+                                                 setIsProfileOpen(false); 
+                                                 openModal('profile'); 
+                                             }}
+                                             className="w-full text-left px-4 py-3 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-3"
+                                         >
+                                             <User size={16} className="text-indigo-500" /> Personalize Profile
+                                         </button>
 
                                         <Link
                                             to="/settings"
