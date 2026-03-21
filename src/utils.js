@@ -9,11 +9,15 @@ export const resolveImageUrl = (url) => {
     if (!url) return null;
 
     // Handle Google Drive sharing links
-    if (url.includes('drive.google.com')) {
-        // Broad match for any file ID in a google drive URL
-        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+    if (url.includes('drive.google.com') || url.includes('googleusercontent.com')) {
+        // match various formats: /d/ID, id=ID, file/d/ID/view, etc.
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || 
+                      url.match(/id=([a-zA-Z0-9_-]+)/) ||
+                      url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                      
         if (match && match[1]) {
-            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            // Using lh3.googleusercontent.com/d/ is more reliable for direct images than drive.google.com/thumbnail
+            return `https://lh3.googleusercontent.com/d/${match[1]}`;
         }
     }
 

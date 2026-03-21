@@ -103,7 +103,8 @@ const EventDetailsModal = () => {
     const selectedEvent = useAppStore((state) => state.selectedEvent);
     const isOpen = modals.eventDetails;
     const userRole = useAppStore((state) => state.userRole);
-    const canManage = userRole === 'admin' || userRole === 'event_manager';
+    const isRoleVerified = useAppStore((state) => state.isRoleVerified);
+    const canManage = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
 
     const event = useLiveQuery(
         () => selectedEvent ? db.events.get(selectedEvent) : null,
@@ -116,12 +117,12 @@ const EventDetailsModal = () => {
     const [isZoomed, setIsZoomed] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
-            // Prevent background scrolling without moving the page
+        // Only lock scroll if the modal is open AND we have event data to show
+        // This prevents the "freeze" where the scroll is locked but no modal is visible yet
+        if (isOpen && event) {
             document.documentElement.style.overflow = 'hidden';
             document.body.style.overflow = 'hidden';
 
-            // Scroll the modal's own content to the top
             requestAnimationFrame(() => {
                 if (modalContentRef.current) {
                     modalContentRef.current.scrollTo(0, 0);
@@ -132,19 +133,18 @@ const EventDetailsModal = () => {
             document.documentElement.style.overflow = '';
             document.body.style.overflow = '';
         };
-    }, [isOpen]);
+    }, [isOpen, event]);
 
     const handleDelete = async () => {
         if (preferences.isDeleteLocked) {
             const pin = prompt('Safe mode is active. Enter PIN:');
             if (pin !== '2026') {
-                alert('Invalid PIN.');
+                alert('Access Denied.');
                 return;
             }
         }
-
-        if (confirm('Are you sure you want to delete this event?')) {
-            await deleteEvent(selectedEvent);
+        if (window.confirm('Erase this event from the grid?')) {
+            await deleteEvent(event.id);
             closeModal('eventDetails');
         }
     };
@@ -158,26 +158,44 @@ const EventDetailsModal = () => {
         await updateEvent(selectedEvent, { status: newStatus });
     };
 
-    return (
-        <AnimatePresence>
-            {isOpen && event && ReactDOM.createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
+    return ReactDOM.createPortal(
+        <AnimatePresence mode="wait">
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Persistent Backdrop */}
                     <motion.div
+                        key="backdrop"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
                         onClick={() => closeModal('eventDetails')}
+                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                     />
 
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="relative w-full max-w-[92%] sm:max-w-md md:max-w-lg bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[1.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 overflow-hidden flex flex-col max-h-[88vh]"
-                    >
+                    {/* Content Switcher */}
+                    <AnimatePresence mode="wait">
+                        {!event ? (
+                            <motion.div
+                                key="loading"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="relative z-10 bg-white dark:bg-slate-900 p-8 rounded-[2rem] flex flex-col items-center gap-4 shadow-2xl"
+                            >
+                                <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Loading Signal...</p>
+                            </motion.div>
+                        ) : (
+                            <React.Fragment key="modal-wrapper">
+                                <motion.div
+                                    key="modal-content"
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="relative w-full max-w-[92%] sm:max-w-md md:max-w-lg bg-white dark:bg-slate-900 rounded-2xl sm:rounded-[1.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-white/20 overflow-hidden flex flex-col max-h-[88vh]"
+                            >
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-800 px-4 py-3 sm:px-5 sm:py-4 text-white relative shrink-0">
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -449,11 +467,13 @@ const EventDetailsModal = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-                </motion.div>
-            </div>,
-            document.body
+            </React.Fragment>
         )}
-    </AnimatePresence>
+        </AnimatePresence>
+        </div>
+        )}
+        </AnimatePresence>,
+        document.body
     );
 };
 

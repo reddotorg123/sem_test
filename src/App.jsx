@@ -162,9 +162,13 @@ function App() {
                             useAppStore.getState().setUserRole(userData.role);
                             useAppStore.getState().setTeamId(userData.teamId);
                             useAppStore.getState().setUserProfile(userData);
+                            useAppStore.getState().setIsRoleVerified(true); // Active backend validation successful
                         } catch (err) {
                             console.error('[Auth] Failed to fetch user data:', err);
+                            useAppStore.getState().setIsRoleVerified(false);
                         }
+                    } else {
+                        useAppStore.getState().setIsRoleVerified(false);
                     }
                     setIsLoading(false);
                 });

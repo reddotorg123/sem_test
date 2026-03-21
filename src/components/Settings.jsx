@@ -34,9 +34,10 @@ const Settings = () => {
     };
 
     const userRole = useAppStore((state) => state.userRole);
+    const isRoleVerified = useAppStore((state) => state.isRoleVerified);
 
     React.useEffect(() => {
-        if (userRole === 'admin') {
+        if (userRole === 'admin' && isRoleVerified) {
             setLoadingUsers(true);
             getAllUsers().then(users => {
                 setUsersList(users);
@@ -49,7 +50,7 @@ const Settings = () => {
                 setLoadingPayments(false);
             });
         }
-    }, [userRole]);
+    }, [userRole, isRoleVerified]);
 
     const handleRoleChange = async (uid, newRole) => {
         try {
@@ -201,7 +202,7 @@ const Settings = () => {
                 <p className="text-slate-500 font-medium">Control your team's cloud infrastructure and preferences.</p>
             </div>
 
-            {userRole === 'admin' && (
+            {userRole === 'admin' && isRoleVerified && (
                 <SettingSection title="Team Cloud Setup" description="Configure your real-time database" icon={Cloud}>
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -290,7 +291,7 @@ const Settings = () => {
                 </SettingSection>
             )}
 
-            {userRole === 'admin' && (
+            {userRole === 'admin' && isRoleVerified && (
                 <SettingSection title="Payment Verification" description="Approve or reject plan upgrade requests" icon={ShieldCheck}>
                     <div className="space-y-4">
                         {loadingPayments ? (
@@ -353,7 +354,7 @@ const Settings = () => {
                 </SettingSection>
             )}
 
-            {userRole === 'admin' && (
+            {userRole === 'admin' && isRoleVerified && (
                 <SettingSection title="User Management" description="Manage team roles and access" icon={UserCog}>
                     <div className="space-y-4">
                         {loadingUsers ? (
@@ -457,7 +458,7 @@ const Settings = () => {
                 </div>
             </SettingSection>
 
-            {(userRole === 'admin' || userRole === 'event_manager') && (
+            {((userRole === 'admin' || userRole === 'event_manager') && isRoleVerified) && (
                 <SettingSection title="Data & Security" description="Export and database maintenance" icon={Database}>
                     <div className="space-y-4">
                         <button onClick={handleExport} className="w-full btn btn-secondary h-14 flex justify-between items-center px-6">

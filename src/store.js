@@ -62,6 +62,10 @@ export const useAppStore = create(
             userRole: localStorage.getItem('sem_user_role') || null, // 'admin', 'event_manager', 'member'
             teamId: localStorage.getItem('sem_team_id') || null,
             userProfile: JSON.parse(localStorage.getItem('sem_user_profile') || 'null'),
+            
+            // SECURITY FLAG: NOT SAVED IN LOCALSTORAGE. Only true if Firebase actively verifies the token.
+            isRoleVerified: false,
+            setIsRoleVerified: (status) => set({ isRoleVerified: status }),
 
             setUser: (user) => {
                 if (user) {

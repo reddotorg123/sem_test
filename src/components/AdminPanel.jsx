@@ -18,7 +18,14 @@ import {
     ArrowRight,
     Loader2,
     Zap,
-    CreditCard
+    CreditCard,
+    Eye,
+    X,
+    Smartphone,
+    Mail,
+    Building2,
+    MapPin,
+    BookOpen
 } from 'lucide-react';
 import { useAppStore } from '../store';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -42,6 +49,8 @@ const AdminPanel = () => {
     const [activeTab, setActiveTab] = useState('events'); // 'events', 'users', 'payments'
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [selectedUser, setSelectedUser] = useState(null);
     
     // Data states
     const [users, setUsers] = useState([]);
@@ -159,6 +168,10 @@ const AdminPanel = () => {
                             <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Units</span>
                             <span className="text-2xl font-black text-indigo-400">{users.length || '--'}</span>
                         </div>
+                        <div className="px-6 py-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center flex-1 sm:flex-none min-w-[120px]">
+                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Active Teams</span>
+                            <span className="text-2xl font-black text-emerald-400">{new Set(users.map(u => u.teamId).filter(Boolean)).size || 0}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,6 +223,20 @@ const AdminPanel = () => {
                         />
                     </div>
                     
+                    {activeTab === 'users' && (
+                        <select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl px-6 py-4 outline-none font-black text-[10px] uppercase tracking-widest border-2 border-transparent focus:border-indigo-600 transition-all text-slate-600 dark:text-slate-300 min-w-[160px]"
+                        >
+                            <option value="all">All Roles</option>
+                            <option value="admin">Administrators</option>
+                            <option value="event_manager">Event Managers</option>
+                            <option value="team_leader">Team Leaders</option>
+                            <option value="public">Public Agents</option>
+                        </select>
+                    )}
+
                     {activeTab === 'events' && (
                         <button 
                             onClick={() => openModal('addEvent')}
@@ -289,25 +316,43 @@ const AdminPanel = () => {
 
                                 {activeTab === 'users' && (
                                     <div className="space-y-4">
-                                        {users.filter(u => u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || u.displayName?.toLowerCase().includes(searchQuery.toLowerCase())).map(u => (
-                                            <div key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 rounded-3xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+                                        {users
+                                            .filter(u => roleFilter === 'all' || u.role === roleFilter)
+                                            .filter(u => u.email?.toLowerCase().includes(searchQuery.toLowerCase()) || u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()))
+                                            .map(u => (
+                                            <div key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 rounded-3xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-all group">
                                                 <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 bg-indigo-600 rounded-2xl overflow-hidden flex items-center justify-center text-white font-black text-lg">
+                                                    <div className="w-14 h-14 bg-indigo-600 rounded-2xl overflow-hidden flex items-center justify-center text-white font-black text-lg shadow-inner">
                                                         {u.photoURL ? <img src={u.photoURL} alt={u.displayName} className="w-full h-full object-cover" /> : (u.displayName || 'U').substring(0, 1).toUpperCase()}
                                                     </div>
                                                     <div>
                                                         <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{u.displayName || 'System Unit'}</h4>
                                                         <p className="text-xs font-bold text-slate-400">{u.email}</p>
-                                                        <div className="flex gap-2 mt-2">
-                                                            <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 text-[8px] font-black uppercase tracking-widest rounded border border-indigo-100">{u.role}</span>
+                                                        <div className="flex items-center gap-2 mt-2">
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded border",
+                                                                u.role === 'admin' ? "bg-rose-50 border-rose-100 text-rose-600" :
+                                                                u.role === 'event_manager' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                                                u.role === 'team_leader' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                                                "bg-slate-100 border-slate-200 text-slate-500"
+                                                            )}>{u.role}</span>
+                                                            {u.teamId && (
+                                                                <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 text-[8px] font-black uppercase tracking-widest rounded border border-indigo-100">In Team</span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
+                                                    <button 
+                                                        onClick={() => setSelectedUser(u)}
+                                                        className="h-10 px-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl text-[10px] font-black text-slate-500 uppercase flex items-center gap-2 hover:border-indigo-600 hover:text-indigo-600 transition-all"
+                                                    >
+                                                        <Eye size={14} /> View
+                                                    </button>
                                                     <select 
                                                         value={u.role} 
                                                         onChange={(e) => handleRoleUpdate(u.id, e.target.value)}
-                                                        className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-600"
+                                                        className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-600 h-10"
                                                     >
                                                         <option value="public">Public</option>
                                                         <option value="team_leader">Team Leader</option>
@@ -386,6 +431,98 @@ const AdminPanel = () => {
                     )}
                 </div>
             </div>
+
+            {/* User Inspection Modal */}
+            <AnimatePresence>
+                {selectedUser && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative"
+                        >
+                            <button 
+                                onClick={() => setSelectedUser(null)}
+                                className="absolute top-6 right-6 w-10 h-10 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-all z-10"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <div className="relative h-32 bg-indigo-600 overflow-hidden">
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+                            </div>
+
+                            <div className="px-8 pb-8 -mt-16 relative">
+                                <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-[2rem] p-2 shadow-xl mb-6 flex-shrink-0">
+                                    <div className="w-full h-full bg-indigo-100 text-indigo-600 rounded-[1.5rem] flex items-center justify-center text-4xl font-black overflow-hidden relative">
+                                        {selectedUser.photoURL ? <img src={selectedUser.photoURL} alt="Profile" className="w-full h-full object-cover" /> : (selectedUser.displayName || 'U').substring(0, 1).toUpperCase()}
+                                    </div>
+                                </div>
+
+                                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none mb-1">
+                                    {selectedUser.displayName || 'Unnamed Protocol'}
+                                </h2>
+                                <p className="text-slate-500 font-bold mb-8">{selectedUser.email}</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400"><Smartphone size={16} /></div>
+                                            <div>
+                                                <span className="block text-[8px] font-black uppercase text-slate-400 tracking-widest">Mobile Link</span>
+                                                <span className="font-bold text-slate-700 text-sm">{selectedUser.mobile || '--'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400"><BookOpen size={16} /></div>
+                                            <div>
+                                                <span className="block text-[8px] font-black uppercase text-slate-400 tracking-widest">Registration No</span>
+                                                <span className="font-bold text-slate-700 text-sm">{selectedUser.regNo || '--'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400"><Building2 size={16} /></div>
+                                            <div>
+                                                <span className="block text-[8px] font-black uppercase text-slate-400 tracking-widest">Institution</span>
+                                                <span className="font-bold text-slate-700 text-sm truncate max-w-[150px] block">{selectedUser.college || '--'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400"><MapPin size={16} /></div>
+                                            <div>
+                                                <span className="block text-[8px] font-black uppercase text-slate-400 tracking-widest">Locality</span>
+                                                <span className="font-bold text-slate-700 text-sm">{selectedUser.locality || '--'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400"><Users size={16} /></div>
+                                            <div>
+                                                <span className="block text-[8px] font-black uppercase text-slate-400 tracking-widest">Team Network</span>
+                                                <span className="font-bold text-slate-700 text-xs truncate max-w-[150px] block">{selectedUser.teamId || 'Lone Wolf'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400"><Clock size={16} /></div>
+                                            <div>
+                                                <span className="block text-[8px] font-black uppercase text-slate-400 tracking-widest">Enrolled Date</span>
+                                                <span className="font-bold text-slate-700 text-sm">{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : '--'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

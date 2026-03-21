@@ -13,7 +13,8 @@ const Header = () => {
     const user = useAppStore((state) => state.user);
     const cloudProvider = useAppStore((state) => state.cloudProvider);
     const userRole = useAppStore((state) => state.userRole);
-    const canAdd = userRole === 'admin' || userRole === 'event_manager';
+    const isRoleVerified = useAppStore((state) => state.isRoleVerified);
+    const canAdd = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const profileRef = useRef(null);

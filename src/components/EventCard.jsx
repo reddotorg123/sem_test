@@ -33,9 +33,11 @@ const safeDiff = (date) => {
 
 const PosterImage = ({ event }) => {
     const [imgSrc, setImgSrc] = React.useState(null);
+    const [hasError, setHasError] = React.useState(false);
 
     React.useEffect(() => {
         let objectUrl = null;
+        setHasError(false); // Reset error state on new event/url
 
         if (event.posterBlob instanceof Blob) {
             objectUrl = URL.createObjectURL(event.posterBlob);
@@ -55,7 +57,7 @@ const PosterImage = ({ event }) => {
         };
     }, [event.posterBlob, event.posterUrl]);
 
-    if (!imgSrc) {
+    if (!imgSrc || hasError) {
         return (
             <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-800 flex flex-col items-center justify-center p-4">
                 <Zap size={24} className="text-white/40 mb-2 animate-pulse" />
@@ -68,6 +70,7 @@ const PosterImage = ({ event }) => {
         <img
             src={imgSrc}
             alt={event.eventName}
+            onError={() => setHasError(true)}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
     );
@@ -81,8 +84,9 @@ const EventCard = React.memo(({ event, compact = false }) => {
     const userRole = useAppStore((state) => state.userRole); // 'admin', 'event_manager', 'member'
 
     const isPinned = pinnedEvents.includes(event.id);
-    const canEdit = userRole === 'admin' || userRole === 'event_manager';
-    const canDelete = userRole === 'admin' || userRole === 'event_manager';
+    const isRoleVerified = useAppStore((state) => state.isRoleVerified);
+    const canEdit = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
+    const canDelete = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
 
     const handleClick = (e) => {
         if (e.target.closest('button') || e.target.closest('.no-click')) return;
@@ -122,7 +126,6 @@ const EventCard = React.memo(({ event, compact = false }) => {
 
     return (
         <motion.div
-            layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -4 }}

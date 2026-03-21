@@ -96,13 +96,10 @@ const Dashboard = () => {
     const events = useLiveQuery(() => db.events.toArray(), []) || [];
 
     // Dashboard Statistics with useMemo
-    const stats = useMemo(() => {
-        const total = events.length;
+    const upcomingEvents = useMemo(() => {
         const now = new Date();
         const today = startOfDay(now);
-
-        // Filter for upcoming/active events only
-        const upcomingEvents = events.filter(e => {
+        return events.filter(e => {
             const endDate = new Date(e.endDate);
             const startDate = new Date(e.startDate);
             const deadline = new Date(e.registrationDeadline);
@@ -115,6 +112,10 @@ const Dashboard = () => {
             if (!referenceDate) return true; // Keep events with no date info
             return !isBefore(startOfDay(referenceDate), today);
         });
+    }, [events]);
+
+    const stats = useMemo(() => {
+        const total = events.length;
 
         const upcomingCount = upcomingEvents.length;
         
@@ -126,26 +127,27 @@ const Dashboard = () => {
         const winCount = events.filter(e => e.status === 'Won').length;
 
         return { total, upcomingCount, totalPrize, winCount };
-    }, [events]);
+    }, [events, upcomingEvents]);
 
     const criticalDeadlines = useMemo(() => {
-        return events
+        return upcomingEvents
             .filter(e => {
                 const deadline = new Date(e.registrationDeadline);
                 const days = differenceInDays(startOfDay(deadline), startOfDay(new Date()));
                 return days >= 0 && days <= 7;
             })
             .sort((a, b) => new Date(a.registrationDeadline) - new Date(b.registrationDeadline));
-    }, [events]);
+    }, [upcomingEvents]);
 
     const priorityEvents = useMemo(() => {
-        return events
+        return upcomingEvents
             .filter(e => e.priorityScore >= 70)
             .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0))
             .slice(0, 5);
-    }, [events]);
+    }, [upcomingEvents]);
 
-    const canManage = userRole === 'admin' || userRole === 'event_manager';
+    const isRoleVerified = useAppStore((state) => state.isRoleVerified);
+    const canManage = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -154,8 +156,8 @@ const Dashboard = () => {
 
     const displayEventsData = useMemo(() => {
         if (priorityEvents.length > 0) return { title: 'Tactical', subtitle: 'Priority List', list: priorityEvents };
-        return { title: 'Recent', subtitle: 'Signals', list: events.slice(0, 3) };
-    }, [priorityEvents, events]);
+        return { title: 'Recent', subtitle: 'Signals', list: upcomingEvents.slice(0, 4) };
+    }, [priorityEvents, upcomingEvents]);
 
     return (
         <motion.div
@@ -249,7 +251,14 @@ const Dashboard = () => {
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-16 px-1">
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
+                <div 
+                    className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 cursor-pointer"
+                    onClick={() => {
+                        resetFilters();
+                        setFilters({ dateRange: 'upcoming' });
+                        navigate('/events');
+                    }}
+                >
                     <div className="absolute -right-4 -top-4 w-32 h-32 bg-indigo-50 dark:bg-indigo-900/10 rounded-full transition-all group-hover:scale-110" />
                     <div className="flex items-center justify-between mb-8 relative z-10">
                         <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center">

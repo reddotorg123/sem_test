@@ -20,20 +20,27 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Anyone logged in can see the list of users (needed for Admin panel)
-      allow read: if request.auth != null;
+      // Restricted Read: Users can read their own profile; Admins can read all profiles.
+      allow read: if request.auth != null && (request.auth.uid == userId || getUserRole() == "admin");
 
-      // START FIX: Allow users to create their own profile during registration
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // Secure Creation: User must be themselves AND they cannot assign themselves anything but "public" role.
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId 
+                    && request.resource.data.role == "public";
       
-      // Allow admins to update roles (e.g. promoting member to manager)
-      allow update: if getUserRole() == "admin";
-      // END FIX
+      // Secure Update: Only admins can update other profiles.
+      // Users can update their own profile AS LONG AS they do not try to elevate their role.
+      allow update: if getUserRole() == "admin" || (
+                      request.auth.uid == userId &&
+                      request.resource.data.role == resource.data.role
+                    );
     }
 
     match /payment_requests/{requestId} {
-      // Simplified for testing - any logged-in user can create a request
-      allow create: if request.auth != null;
+      // Secure Creation: Users can only create requests assigned to their UID, and status must be 'pending'
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == "pending";
       
       // Allow users to read their own requests
       allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
