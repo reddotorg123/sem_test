@@ -99,10 +99,23 @@ const Dashboard = () => {
     const stats = useMemo(() => {
         const total = events.length;
         const now = new Date();
-        const upcomingEvents = events.filter(e => 
-            isAfter(new Date(e.startDate), now) || 
-            isAfter(new Date(e.registrationDeadline), now)
-        );
+        const today = startOfDay(now);
+
+        // Filter for upcoming/active events only
+        const upcomingEvents = events.filter(e => {
+            const endDate = new Date(e.endDate);
+            const startDate = new Date(e.startDate);
+            const deadline = new Date(e.registrationDeadline);
+
+            // Use the latest available date to determine if the event is in the past
+            const referenceDate = !isNaN(endDate.getTime()) ? endDate : 
+                                !isNaN(startDate.getTime()) ? startDate : 
+                                !isNaN(deadline.getTime()) ? deadline : null;
+
+            if (!referenceDate) return true; // Keep events with no date info
+            return !isBefore(startOfDay(referenceDate), today);
+        });
+
         const upcomingCount = upcomingEvents.length;
         
         const prizeValues = upcomingEvents.map(e => {
