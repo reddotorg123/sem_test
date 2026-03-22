@@ -23,6 +23,7 @@ const Login = () => {
     const [department, setDepartment] = useState('');
     const [locality, setLocality] = useState('');
     const [year, setYear] = useState('');
+    const [mobile, setMobile] = useState('');
     const [professionalDetails, setProfessionalDetails] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -54,7 +55,7 @@ const Login = () => {
             if (isRegistering) {
                 // Execute Firebase "Create User" logic
                 const userCredential = await registerUser(email, password, name, {
-                    college, dob, regNo, department, locality, year, professionalDetails
+                    college, dob, regNo, department, locality, year, professionalDetails, mobile
                 });
                 setUser(userCredential.user);    // Save user to the "Brain" (Store)
 
@@ -138,6 +139,7 @@ const Login = () => {
                                     <div className="grid grid-cols-2 gap-3">
                                         <input type="text" value={college} onChange={(e) => setCollege(e.target.value)} placeholder="College Name" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
                                         <input type="text" value={regNo} onChange={(e) => setRegNo(e.target.value)} placeholder="Register No." className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
+                                        <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="Mobile No." className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
                                         <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
                                         <input type="text" value={year} onChange={(e) => setYear(e.target.value)} placeholder="Year of Study" className="input px-4 !py-3 font-semibold focus:ring-indigo-500/20 focus:border-indigo-500 text-xs w-full" />
                                         <div className="col-span-2">
