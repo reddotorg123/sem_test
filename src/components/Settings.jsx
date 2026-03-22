@@ -298,11 +298,11 @@ const Settings = () => {
                             <div className="flex justify-center p-4">
                                 <Loader2 className="animate-spin text-indigo-600" />
                             </div>
-                        ) : paymentRequests.length === 0 ? (
-                            <p className="text-center py-8 text-xs font-bold text-slate-400 uppercase tracking-widest">No payment requests found</p>
+                        ) : paymentRequests.filter(req => req.status === 'pending').length === 0 ? (
+                            <p className="text-center py-8 text-xs font-bold text-slate-400 uppercase tracking-widest">No pending payment requests</p>
                         ) : (
                             <div className="space-y-3">
-                                {paymentRequests.map((req) => (
+                                {paymentRequests.filter(req => req.status === 'pending').map((req) => (
                                     <div key={req.id} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
                                         <div className="flex items-start justify-between">
                                             <div>

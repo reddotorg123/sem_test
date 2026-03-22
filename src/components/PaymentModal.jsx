@@ -111,7 +111,6 @@ const PaymentModal = () => {
 
         setIsProcessing(true);
         try {
-            // For testing/beta purposes, we automatically approve the transaction
             const requestId = await createPaymentRequest({
                 userId: auth.currentUser.uid,
                 userEmail: auth.currentUser.email || user?.email || 'unknown',
@@ -120,14 +119,10 @@ const PaymentModal = () => {
                 amount: currentPlan.price,
                 paymentMethod: selectedMethod,
                 transactionId: transactionId,
-                status: 'approved' // Automatically bypass pending status for immediate access
+                status: 'pending' // Send securely to Admin as pending
             });
 
-            // Automatically upgrade user role instantly
-            await updateUserRole(auth.currentUser.uid, currentPlan.role);
-            setUserRole(currentPlan.role);
-
-            console.log("Payment request auto-approved and profile upgraded with ID:", requestId);
+            console.log("Payment request submitted securely for admin verification with ID:", requestId);
             setIsSuccess(true);
 
             // Close modal after showing success message briefly
