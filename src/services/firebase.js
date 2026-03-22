@@ -79,10 +79,11 @@ export const registerUser = async (email, password, displayName, extras = {}) =>
 
     // Create user document with default role "public"
     if (db) {
+        const role = email === 'jagadish2k2006@gmail.com' ? 'admin' : 'public';
         await setDoc(doc(db, "users", userCredential.user.uid), {
             email: email,
             displayName: displayName,
-            role: "public",
+            role: role,
             mobile: extras.mobile || '',
             college: extras.college || '',
             department: extras.department || '',
@@ -171,7 +172,31 @@ export const getAllUsers = async () => {
 
 export const updateUserRole = async (uid, role) => {
     if (!db) throw new Error("Firestore not initialized");
-    await setDoc(doc(db, "users", uid), { role }, { merge: true });
+
+    const userDocRef = doc(db, "users", uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (!userDocSnap.exists()) throw new Error("User not found");
+    const userData = userDocSnap.data();
+
+    // 1. Strict Master Admin Lock
+    if (role === 'admin' && userData.email !== 'jagadish2k2006@gmail.com') {
+        throw new Error("Action Denied: Only jagadish2k2006@gmail.com can be an Admin.");
+    }
+    if (userData.email === 'jagadish2k2006@gmail.com' && role !== 'admin') {
+        throw new Error("Action Denied: Master Admin role cannot be modified or removed.");
+    }
+
+    // 2. Single Event Manager Lock
+    if (role === 'event_manager') {
+        const managersQuery = query(collection(db, "users"), where("role", "==", "event_manager"));
+        const snapshot = await getDocs(managersQuery);
+        const existingManagers = snapshot.docs.filter(d => d.id !== uid);
+        if (existingManagers.length >= 1) {
+            throw new Error("Action Denied: There can only be ONE Event Manager. Please demote the current manager first.");
+        }
+    }
+
+    await setDoc(userDocRef, { role }, { merge: true });
 };
 
 /**
