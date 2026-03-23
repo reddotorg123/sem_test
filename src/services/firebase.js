@@ -134,6 +134,25 @@ export const getUserData = async (uid) => {
 };
 
 /**
+ * FIRESTORE: Live subscribe to user data changes.
+ */
+export const subscribeToUserData = (uid, callback) => {
+    if (!db) return null;
+    return onSnapshot(doc(db, "users", uid), (userDoc) => {
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            callback({
+                ...data,
+                role: data.role || "public",
+                teamId: data.teamId || null,
+                hasSubscription: !!data.hasSubscription,
+                position: data.position || 'Explorer'
+            });
+        }
+    });
+};
+
+/**
  * FIRESTORE: Get all members of a team
  */
 export const getTeamMembers = async (teamId) => {
@@ -380,6 +399,18 @@ export const getPaymentRequests = async () => {
 };
 
 /**
+ * FIRESTORE: Live subscribe to all payment requests.
+ */
+export const subscribeToPaymentRequests = (callback) => {
+    if (!db) return null;
+    const q = query(collection(db, "payment_requests"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+        const reqs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(reqs);
+    });
+};
+
+/**
  * FIRESTORE: Approves a payment request and upgrades user role.
  */
 export const approvePaymentRequest = async (requestId, userId, planRole) => {
@@ -402,15 +433,24 @@ export const approvePaymentRequest = async (requestId, userId, planRole) => {
 };
 
 /**
- * FIRESTORE: Rejects a payment request.
+ * FIRESTORE: Rejects or reverts a payment request.
  */
-export const rejectPaymentRequest = async (requestId, reason = '') => {
+export const rejectPaymentRequest = async (requestId, userId) => {
     if (!db) throw new Error("Firestore not initialized");
 
+    const batch = writeBatch(db);
+
     const requestRef = doc(db, "payment_requests", requestId);
-    await setDoc(requestRef, {
+    batch.update(requestRef, {
         status: 'rejected',
-        rejectionReason: reason,
         rejectedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+
+    // Also downgrade user role back to public to revert the approval
+    if (userId) {
+        const userRef = doc(db, "users", userId);
+        batch.update(userRef, { role: 'public' });
+    }
+
+    await batch.commit();
 };

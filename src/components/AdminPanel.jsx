@@ -33,7 +33,7 @@ import { db } from '../db';
 import { 
     getAllUsers, 
     updateUserRole, 
-    getPaymentRequests, 
+    subscribeToPaymentRequests, 
     approvePaymentRequest, 
     rejectPaymentRequest,
     deleteEventFromFirestore
@@ -71,15 +71,17 @@ const AdminPanel = () => {
     }
 
     useEffect(() => {
+        let unsubscribePayments = () => {};
+
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [allUsers, allPayments] = await Promise.all([
-                    getAllUsers(),
-                    getPaymentRequests()
-                ]);
+                const allUsers = await getAllUsers();
                 setUsers(allUsers);
-                setPayments(allPayments);
+                
+                unsubscribePayments = subscribeToPaymentRequests((allPayments) => {
+                    setPayments(allPayments);
+                });
             } catch (err) {
                 console.error("Failed to fetch admin data:", err);
             } finally {
@@ -92,6 +94,8 @@ const AdminPanel = () => {
         } else {
             setIsLoading(false);
         }
+
+        return () => unsubscribePayments();
     }, [activeTab]);
 
     const handleRoleUpdate = async (uid, newRole) => {
@@ -107,12 +111,10 @@ const AdminPanel = () => {
         try {
             if (action === 'approve') {
                 await approvePaymentRequest(request.id, request.userId, request.planRole);
-                setPayments(prev => prev.map(p => p.id === request.id ? { ...p, status: 'approved' } : p));
-                // Update local user role if they are in the loaded users list
                 setUsers(prev => prev.map(u => u.id === request.userId ? { ...u, role: request.planRole } : u));
             } else {
-                await rejectPaymentRequest(request.id, "Payment verification unsuccessful.");
-                setPayments(prev => prev.map(p => p.id === request.id ? { ...p, status: 'rejected' } : p));
+                await rejectPaymentRequest(request.id, request.userId);
+                setUsers(prev => prev.map(u => u.id === request.userId ? { ...u, role: 'public' } : u));
             }
         } catch (err) {
             console.error("Payment action failed:", err);
@@ -416,11 +418,20 @@ const AdminPanel = () => {
                                                                     <XCircle size={16} /> Reject
                                                                 </button>
                                                             </>
+                                                        ) : req.status === 'approved' ? (
+                                                            <>
+                                                                <div className="py-4 rounded-2xl text-center font-black text-[10px] uppercase tracking-[0.2em] border bg-emerald-50 text-emerald-600 border-emerald-200">
+                                                                    APPROVED
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => handlePaymentAction(req, 'reject')}
+                                                                    className="py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-100 transition-all border border-rose-100"
+                                                                >
+                                                                    <XCircle size={16} /> Revert
+                                                                </button>
+                                                            </>
                                                         ) : (
-                                                            <div className={cn(
-                                                                "py-4 rounded-2xl text-center font-black text-[10px] uppercase tracking-[0.2em] border",
-                                                                req.status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-rose-50 text-rose-600 border-rose-200"
-                                                            )}>
+                                                            <div className="py-4 rounded-2xl text-center font-black text-[10px] uppercase tracking-[0.2em] border bg-rose-50 text-rose-600 border-rose-200">
                                                                 {req.status}
                                                             </div>
                                                         )}

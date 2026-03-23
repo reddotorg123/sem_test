@@ -146,6 +146,7 @@ function App() {
     useEffect(() => {
         // Step 1: Initialize Firebase with the saved config
         let unsubscribeAuth = () => { };
+        let unsubscribeUserData = () => { };
 
         try {
             const firebaseData = initFirebase(firebaseConfig);
@@ -155,22 +156,27 @@ function App() {
                 unsubscribeAuth = onAuthStateChanged(firebaseData.auth, async (firebaseUser) => {
                     console.log('[Auth] State changed. User:', firebaseUser?.email || 'None');
                     setUser(firebaseUser); // Sync user status to the store
+                    unsubscribeUserData(); // clear any previous listener
 
                     if (firebaseUser) {
                         try {
-                            const userData = await getUserData(firebaseUser.uid);
-                            useAppStore.getState().setUserRole(userData.role);
-                            useAppStore.getState().setTeamId(userData.teamId);
-                            useAppStore.getState().setUserProfile(userData);
-                            useAppStore.getState().setIsRoleVerified(true); // Active backend validation successful
+                            const { subscribeToUserData } = await import('./services/firebase');
+                            unsubscribeUserData = subscribeToUserData(firebaseUser.uid, (userData) => {
+                                useAppStore.getState().setUserRole(userData.role);
+                                useAppStore.getState().setTeamId(userData.teamId);
+                                useAppStore.getState().setUserProfile(userData);
+                                useAppStore.getState().setIsRoleVerified(true); // Active backend validation successful
+                                setIsLoading(false);
+                            });
                         } catch (err) {
                             console.error('[Auth] Failed to fetch user data:', err);
                             useAppStore.getState().setIsRoleVerified(false);
+                            setIsLoading(false);
                         }
                     } else {
                         useAppStore.getState().setIsRoleVerified(false);
+                        setIsLoading(false);
                     }
-                    setIsLoading(false);
                 });
             } else {
                 setIsLoading(false);
@@ -180,7 +186,10 @@ function App() {
             setIsLoading(false);
         }
 
-        return () => unsubscribeAuth();
+        return () => {
+            unsubscribeAuth();
+            unsubscribeUserData();
+        };
     }, [firebaseConfig, setUser]);
 
     /**
