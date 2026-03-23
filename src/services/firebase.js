@@ -20,6 +20,7 @@ import {
     orderBy,
     deleteDoc,
     getDoc,
+    updateDoc,
     where
 } from "firebase/firestore";
 import {
@@ -176,21 +177,29 @@ export const updateUserProfile = async (uid, data) => {
 };
 
 /**
- * FIRESTORE: Delete user data
+ * FIRESTORE: Delete user data (soft-delete to avoid Firestore rules blocking deleteDoc)
  */
 export const deleteUserData = async (uid) => {
     if (!db) throw new Error("Firestore not initialized");
-    await deleteDoc(doc(db, "users", uid));
+    const userRef = doc(db, "users", uid);
+    // Soft-delete: mark user as deleted and downgrade role
+    await updateDoc(userRef, { 
+        deleted: true, 
+        role: 'deleted',
+        deletedAt: new Date().toISOString()
+    });
 };
 
 /**
- * FIRESTORE: Set user role (Admin only)
+ * FIRESTORE: Get all users (excludes soft-deleted)
  */
 export const getAllUsers = async () => {
     if (!db) return [];
     try {
         const querySnapshot = await getDocs(collection(db, "users"));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(user => !user.deleted);
     } catch (error) {
         console.error("Error fetching users:", error);
         return [];
@@ -424,18 +433,24 @@ export const subscribeToPaymentRequests = (callback) => {
 export const approvePaymentRequest = async (requestId, userId, planRole) => {
     if (!db) throw new Error("Firestore not initialized");
 
+    // SAFETY: Never allow payment approval to set admin role
+    const safeRole = (!planRole || planRole === 'admin' || planRole === 'event_manager') 
+        ? 'team_leader' 
+        : planRole;
+
     const batch = writeBatch(db);
 
     // 1. Update request status
     const requestRef = doc(db, "payment_requests", requestId);
     batch.update(requestRef, {
         status: 'approved',
-        approvedAt: new Date().toISOString()
+        approvedAt: new Date().toISOString(),
+        assignedRole: safeRole
     });
 
     // 2. Update user role
     const userRef = doc(db, "users", userId);
-    batch.update(userRef, { role: planRole });
+    batch.update(userRef, { role: safeRole });
 
     await batch.commit();
 };

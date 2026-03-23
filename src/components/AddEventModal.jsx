@@ -296,12 +296,12 @@ const AddEventModal = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-4">
-                                        <label className="flex items-center gap-6 p-6 rounded-[2rem] bg-indigo-50 dark:bg-indigo-950/20 border-2 border-transparent has-[:checked]:border-indigo-600 cursor-pointer group transition-all">
+                                        <label className="flex items-center gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl sm:rounded-[2rem] bg-indigo-50 dark:bg-indigo-950/20 border-2 border-transparent has-[:checked]:border-indigo-600 cursor-pointer group transition-all">
                                             <input type="checkbox" name="isOnline" checked={formData.isOnline} onChange={handleChange} className="hidden" />
                                             <div className={cn("w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all", formData.isOnline ? "bg-indigo-600 border-indigo-600" : "border-slate-300")}><Check size={16} className="text-white" /></div>
                                             <div><span className="block text-[11px] font-black uppercase tracking-widest text-indigo-700 dark:text-indigo-400">Online Event</span><span className="text-[10px] text-slate-500">Enable for virtual events</span></div>
                                         </label>
-                                        <label className="flex items-center gap-6 p-6 rounded-[2rem] bg-emerald-50 dark:bg-emerald-950/20 border-2 border-transparent has-[:checked]:border-emerald-600 cursor-pointer group transition-all">
+                                        <label className="flex items-center gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl sm:rounded-[2rem] bg-emerald-50 dark:bg-emerald-950/20 border-2 border-transparent has-[:checked]:border-emerald-600 cursor-pointer group transition-all">
                                             <input type="checkbox" name="accommodation" checked={formData.accommodation} onChange={handleChange} className="hidden" />
                                             <div className={cn("w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all", formData.accommodation ? "bg-emerald-600 border-emerald-600" : "border-slate-300")}><Check size={16} className="text-white" /></div>
                                             <div><span className="block text-[11px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Accommodation</span><span className="text-[10px] text-slate-500">Stay provided by college</span></div>
@@ -341,7 +341,7 @@ const AddEventModal = () => {
                                         <textarea name="description" value={formData.description} onChange={handleChange} rows="3" className="input-premium min-h-[100px] resize-none pt-4" placeholder="Brief about the event..."></textarea>
                                     </div>
                                 </div>
-                                <div className="space-y-6 bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl">
+                                <div className="space-y-4 sm:space-y-6 bg-slate-900 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-10 text-white shadow-2xl">
                                     <div className="flex items-center gap-3 mb-4">
                                         <ShieldCheck size={20} className="text-indigo-400" />
                                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Contact Details</span>
