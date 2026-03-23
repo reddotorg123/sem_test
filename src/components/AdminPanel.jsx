@@ -384,12 +384,16 @@ const AdminPanel = () => {
                                                         <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
                                                             {req.userName} requested <span className="text-indigo-600">{req.planName}</span>
                                                         </h4>
-                                                        <div className="grid grid-cols-2 gap-4 pt-4">
-                                                            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                                                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Transaction Link</span>
-                                                                <a href={req.transactionUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-600 hover:underline truncate block">View Receipt/Transfer</a>
+                                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                                                            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden text-ellipsis">
+                                                                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Transaction ID / Ref</span>
+                                                                <span className="text-xs font-bold text-indigo-600 truncate block">{req.transactionId || 'N/A'}</span>
                                                             </div>
-                                                            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                                            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden text-ellipsis">
+                                                                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">User UPI / App</span>
+                                                                <span className="text-xs font-bold text-slate-500 truncate block">{req.userUpiId || 'Not Provided'}</span>
+                                                            </div>
+                                                            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden text-ellipsis">
                                                                 <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Request Intelligence</span>
                                                                 <span className="text-xs font-bold text-slate-500">UID: {req.userId?.substring(0, 10)}...</span>
                                                             </div>

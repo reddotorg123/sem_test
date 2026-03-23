@@ -34,6 +34,7 @@
         /* Prevent overscroll bounce on mobile */
         overscroll-behavior: none;
         height: -webkit-fill-available;
+        overflow-x: hidden;
     }
 
     body {
@@ -44,6 +45,8 @@
         min-height: 100vh;
         padding-top: var(--safe-area-top);
         padding-bottom: var(--safe-area-bottom);
+        overflow-x: hidden;
+        width: 100%;
     }
 
     /* Optimize button and interactive elements for touch */

@@ -18,6 +18,7 @@ const PaymentModal = () => {
     const [selectedMethod, setSelectedMethod] = useState('gpay');
     const [selectedPlan, setSelectedPlan] = useState('team');
     const [transactionId, setTransactionId] = useState('');
+    const [userUpiId, setUserUpiId] = useState('');
     const [copied, setCopied] = useState(false);
     const [maskKeys, setMaskKeys] = useState(true);
 
@@ -119,6 +120,7 @@ const PaymentModal = () => {
                 amount: currentPlan.price,
                 paymentMethod: selectedMethod,
                 transactionId: transactionId,
+                userUpiId: userUpiId,
                 status: 'pending' // Send securely to Admin as pending
             });
 
@@ -288,6 +290,14 @@ const PaymentModal = () => {
                                     )}
 
                                     <div className="space-y-4">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Your UPI ID / App Used (Optional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. yourname@okbank or GPay"
+                                            value={userUpiId}
+                                            onChange={(e) => setUserUpiId(e.target.value)}
+                                            className="w-full h-14 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-900 rounded-2xl px-6 text-sm font-bold transition-all outline-none mb-4"
+                                        />
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Transaction ID / UTR Number</label>
                                         <input
                                             type="text"
