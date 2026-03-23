@@ -51,10 +51,19 @@ export const EventStatus = {
     COMPLETED: 'Completed',
     ATTENDED: 'Attended',
     WON: 'Won',
-    BLOCKED: 'Blocked'
+    BLOCKED: 'Blocked',
+    UPCOMING: 'Upcoming'
 };
 
-const MANUAL_STATUSES = [EventStatus.WON, EventStatus.ATTENDED, EventStatus.BLOCKED, EventStatus.REGISTERED, EventStatus.SHORTLISTED];
+const MANUAL_STATUSES = [
+    EventStatus.WON, 
+    EventStatus.ATTENDED, 
+    EventStatus.BLOCKED, 
+    EventStatus.REGISTERED, 
+    EventStatus.SHORTLISTED,
+    EventStatus.UPCOMING,
+    EventStatus.OPEN
+];
 
 /**
  * Creates a standard event object with defaults.
@@ -221,7 +230,10 @@ export const calculatePriorityScore = (event) => {
  */
 export const updateTeamEventStatus = async (eventId, updates) => {
     const { teamId, cloudProvider } = useAppStore.getState();
-    if (!teamId) return;
+    if (!teamId || !eventId) {
+        console.warn('[DB] Update blocked: teamId or eventId missing', { teamId, eventId });
+        return;
+    }
 
     const existing = await db.teamEventData.where({ teamId, eventId }).first();
     const now = new Date().toISOString();
@@ -260,10 +272,10 @@ export const getMergedEvents = async () => {
         const endDate = new Date(event.endDate);
         const deadline = new Date(event.registrationDeadline);
         
-        // Use user-set status OR global calculated status
+        // 1. Trust user interaction above all else
         let status = stats?.status || event.status;
         
-        // Auto-switch logic: ONLY apply to events with no user interaction (not in manual statuses and not set in team stats)
+        // 2. Only apply automatic dates-based logic if the user HAS NOT manually tracked this event
         const isUserOverridden = !!stats?.status;
         if (!isUserOverridden && !MANUAL_STATUSES.includes(status)) {
             if (!isNaN(endDate.getTime()) && now > endDate) status = EventStatus.COMPLETED;

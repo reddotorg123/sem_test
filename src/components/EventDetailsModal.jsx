@@ -126,12 +126,28 @@ const EventDetailsModal = () => {
         const endDate = new Date(eventRaw.endDate);
         const deadline = new Date(eventRaw.registrationDeadline);
         
+        // 1. Start with the most specific status (private user/team status)
         let status = teamData?.status || eventRaw.status;
-        const manualStatuses = [EventStatus.WON, EventStatus.ATTENDED, EventStatus.REGISTERED, EventStatus.SHORTLISTED, EventStatus.BLOCKED];
+
+        // 2. Only apply automatic dates-based logic if the user HAS NOT set their own status yet
+        const manualStatuses = [
+            EventStatus.WON, 
+            EventStatus.ATTENDED, 
+            EventStatus.REGISTERED, 
+            EventStatus.SHORTLISTED, 
+            EventStatus.BLOCKED,
+            EventStatus.UPCOMING,
+            EventStatus.OPEN
+        ];
         
-        if (!manualStatuses.includes(status)) {
+        const isUserOverridden = !!teamData?.status;
+        if (!isUserOverridden && !manualStatuses.includes(status)) {
             if (!isNaN(endDate.getTime()) && now > endDate) status = EventStatus.COMPLETED;
             else if (!isNaN(deadline.getTime()) && now > deadline) status = EventStatus.CLOSED;
+            else if (status === EventStatus.CLOSED || status === EventStatus.COMPLETED) {
+                // Restore to Upcoming/Open if dates are in future but global status says closed
+                status = EventStatus.UPCOMING;
+            }
         }
 
         return {
@@ -187,7 +203,9 @@ const EventDetailsModal = () => {
 
     const handleStatusChange = async (newStatus) => {
         const { updateTeamEventStatus } = await import('../db');
-        await updateTeamEventStatus(event.serverId, { status: newStatus });
+        const eventId = event.serverId || event.id;
+        if (!eventId) return alert("Wait for sync to complete before tracking.");
+        await updateTeamEventStatus(eventId, { status: newStatus });
     };
 
     const handlePrizeWonChange = async () => {
