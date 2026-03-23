@@ -186,7 +186,7 @@ const AddEventModal = () => {
                         className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-[2rem] md:rounded-[3rem] shadow-[0_64px_128px_-24px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col max-h-[100vh] sm:max-h-[95vh]"
                     >
                 {/* Header Subsystem */}
-                <div className="bg-slate-900 p-4 sm:p-8 text-white relative flex items-center justify-between border-b border-white/10">
+                <div className="bg-slate-900 p-4 sm:p-8 text-white relative flex items-center justify-between border-b border-white/10 shrink-0">
                     <div className="flex items-center gap-5">
                         <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-500/30 border border-white/20">
                             <Plus size={22} strokeWidth={3} className="text-white" />
@@ -202,7 +202,7 @@ const AddEventModal = () => {
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar shrink-0">
                     {tabs.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -386,7 +386,7 @@ const AddEventModal = () => {
                 </div>
 
                 {/* Modal Actions */}
-                <div className="px-4 sm:px-10 py-4 sm:py-8 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 sm:gap-6">
+                <div className="px-4 sm:px-10 py-4 sm:py-8 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 sm:gap-6 shrink-0">
                     <button type="button" onClick={() => closeModal('addEvent')} className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancel</button>
                     <button type="submit" form="add-event-form" disabled={isSubmitting} className="px-6 sm:px-12 h-12 sm:h-16 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-wider sm:tracking-[0.4em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 sm:gap-4">
                         {isSubmitting ? <div className="w-5 h-5 border-4 border-slate-400 border-t-white rounded-full animate-spin" /> : <><Save size={20} /> Save Event</>}

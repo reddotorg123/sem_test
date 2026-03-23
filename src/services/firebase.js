@@ -122,15 +122,15 @@ export const getUserData = async (uid) => {
             return {
                 ...data,
                 role: data.role || "public",
-                teamId: data.teamId || null,
+                teamId: data.teamId || uid,
                 hasSubscription: !!data.hasSubscription,
                 position: data.position || 'Explorer'
             };
         }
-        return { role: "public", teamId: null, hasSubscription: false, position: 'Explorer' };
+        return { role: "public", teamId: uid, hasSubscription: false, position: 'Explorer' };
     } catch (error) {
         console.error("Error fetching user data:", error);
-        return { role: "public", teamId: null, hasSubscription: false, position: 'Explorer' };
+        return { role: "public", teamId: uid, hasSubscription: false, position: 'Explorer' };
     }
 };
 
@@ -145,7 +145,7 @@ export const subscribeToUserData = (uid, callback) => {
             callback({
                 ...data,
                 role: data.role || "public",
-                teamId: data.teamId || null,
+                teamId: data.teamId || uid,
                 hasSubscription: !!data.hasSubscription,
                 position: data.position || 'Explorer'
             });
