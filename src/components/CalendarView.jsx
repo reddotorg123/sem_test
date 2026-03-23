@@ -19,7 +19,11 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Trophy } fr
 import { cn } from '../utils';
 
 const CalendarView = () => {
-    const events = useLiveQuery(() => db.events.toArray(), []);
+    const teamId = useAppStore((state) => state.teamId);
+    const events = useLiveQuery(async () => {
+        const { getMergedEvents } = await import('../db');
+        return await getMergedEvents();
+    }, [teamId]) || [];
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [direction, setDirection] = useState(0);

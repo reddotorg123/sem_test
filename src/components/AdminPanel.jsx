@@ -56,7 +56,11 @@ const AdminPanel = () => {
     // Data states
     const [users, setUsers] = useState([]);
     const [payments, setPayments] = useState([]);
-    const localEvents = useLiveQuery(() => db.events.toArray(), []) || [];
+    const teamId = useAppStore((state) => state.teamId);
+    const localEvents = useLiveQuery(async () => {
+        const { getMergedEvents } = await import('../db');
+        return await getMergedEvents();
+    }, [teamId]) || [];
 
     // Security Check
     if (userRole !== 'admin' && userRole !== 'event_manager') {

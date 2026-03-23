@@ -263,8 +263,9 @@ export const getMergedEvents = async () => {
         // Use user-set status OR global calculated status
         let status = stats?.status || event.status;
         
-        // Auto-switch logic for "Upcoming" events whose dates have passed
-        if (!MANUAL_STATUSES.includes(status)) {
+        // Auto-switch logic: ONLY apply to events with no user interaction (not in manual statuses and not set in team stats)
+        const isUserOverridden = !!stats?.status;
+        if (!isUserOverridden && !MANUAL_STATUSES.includes(status)) {
             if (!isNaN(endDate.getTime()) && now > endDate) status = EventStatus.COMPLETED;
             else if (!isNaN(deadline.getTime()) && now > deadline) status = EventStatus.CLOSED;
         }

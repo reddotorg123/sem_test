@@ -159,13 +159,19 @@ function App() {
                     unsubscribeUserData(); // clear any previous listener
 
                     if (firebaseUser) {
+                        // Cold Start: Use UID as teamId immediately to avoid global data collision before profile loads
+                        const currentTeamId = useAppStore.getState().teamId;
+                        if (!currentTeamId) {
+                            useAppStore.getState().setTeamId(firebaseUser.uid);
+                        }
+
                         try {
                             const { subscribeToUserData } = await import('./services/firebase');
                             unsubscribeUserData = subscribeToUserData(firebaseUser.uid, (userData) => {
                                 useAppStore.getState().setUserRole(userData.role);
-                                useAppStore.getState().setTeamId(userData.teamId);
+                                useAppStore.getState().setTeamId(userData.teamId); // This will return userData.teamId || uid from the firebase service
                                 useAppStore.getState().setUserProfile(userData);
-                                useAppStore.getState().setIsRoleVerified(true); // Active backend validation successful
+                                useAppStore.getState().setIsRoleVerified(true);
                                 setIsLoading(false);
                             });
                         } catch (err) {

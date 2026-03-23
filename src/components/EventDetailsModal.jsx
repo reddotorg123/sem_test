@@ -318,7 +318,8 @@ const EventDetailsModal = () => {
                                 onClick={async () => {
                                     if (event.status !== 'Registered') {
                                         if (confirm("Mark this event as registered? This will track it as 'Participating'.")) {
-                                            await updateEvent(event.id, { status: 'Registered' });
+                                            const { updateTeamEventStatus } = await import('../db');
+                                            await updateTeamEventStatus(event.serverId || event.id, { status: 'Registered' });
                                         }
                                     }
                                 }}

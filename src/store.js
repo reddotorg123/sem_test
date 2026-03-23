@@ -76,7 +76,12 @@ export const useAppStore = create(
                     localStorage.removeItem('sem_team_id');
                     localStorage.removeItem('sem_user_profile');
                 }
-                set({ user, userRole: user ? get().userRole : null, teamId: user ? get().teamId : null, userProfile: user ? get().userProfile : null });
+                set({ 
+                    user, 
+                    userRole: user ? get().userRole : null, 
+                    teamId: user ? (get().teamId || user.uid) : null, 
+                    userProfile: user ? get().userProfile : null 
+                });
             },
 
             setUserProfile: (profile) => {

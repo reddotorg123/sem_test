@@ -36,7 +36,11 @@ const Analytics = () => {
     const userRole = useAppStore((state) => state.userRole);
     const openPaymentModal = () => useAppStore.getState().openModal('payment');
 
-    const events = useLiveQuery(() => db.events.toArray(), []);
+    const teamId = useAppStore((state) => state.teamId);
+    const events = useLiveQuery(async () => {
+        const { getMergedEvents } = await import('../db');
+        return await getMergedEvents();
+    }, [teamId]) || [];
     const [modalConfig, setModalConfig] = useState({ isOpen: false, type: null, title: '' });
 
     const openAnalyticsModal = (type, title) => {
@@ -66,7 +70,7 @@ const Analytics = () => {
         const avgPrize = totalPrize / total;
 
         const wonEvents = events.filter(e => e.status === 'Won');
-        const wonPrize = wonEvents.reduce((sum, e) => sum + (parseFloat(e.prizeAmount) || 0), 0);
+        const wonPrize = wonEvents.reduce((sum, e) => sum + (parseFloat(e.prizeWon) || 0), 0);
         const paidFees = events.filter(e => e.status === 'Attended' || e.status === 'Won')
             .reduce((sum, e) => sum + (parseFloat(e.registrationFee) || 0), 0);
         const roi = paidFees > 0 ? ((wonPrize - paidFees) / paidFees * 100) : 0;
