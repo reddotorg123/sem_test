@@ -187,9 +187,28 @@ function App() {
                                         return; // Role update will re-trigger the listener
                                     }
                                 }
+                                
+                                // --- SUBSCRIPTION WATCH: 5-Day Warning ---
+                                if (userData.expiresAt) {
+                                    const expiry = new Date(userData.expiresAt);
+                                    const now = new Date();
+                                    const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+                                    
+                                    if (diffDays <= 5 && diffDays > 0) {
+                                        try {
+                                            const { addNotification } = await import('./services/firebase');
+                                            await addNotification(firebaseUser.uid, {
+                                                id: `expiry_remind_${diffDays}`, // Semi-unique ID prevents repeated notifications for the same day
+                                                title: 'Tactical Warning: Subscription Expiring',
+                                                content: `Your Team Edition subscription expires in ${diffDays} days. Renew now to avoid losing tactical access.`,
+                                                type: 'warning'
+                                            });
+                                        } catch (err) { console.error('[Watch] Reminder failed:', err); }
+                                    }
+                                }
 
                                 useAppStore.getState().setUserRole(userData.role);
-                                useAppStore.getState().setTeamId(userData.teamId); // This will return userData.teamId || uid from the firebase service
+                                useAppStore.getState().setTeamId(userData.teamId); 
                                 useAppStore.getState().setUserProfile(userData);
                                 useAppStore.getState().setIsRoleVerified(true);
                                 setIsLoading(false);

@@ -552,8 +552,20 @@ export const subscribeToTeamMessages = (teamId, callback) => {
     
     return onSnapshot(q, (snapshot) => {
         const messages = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); // Client-side sort
+            .map(doc => {
+                const data = doc.data();
+                // Safe timestamp conversion (handles ISO strings and Firestore Timestamps)
+                let date;
+                if (data.timestamp?.toDate) date = data.timestamp.toDate();
+                else date = new Date(data.timestamp || Date.now());
+
+                return { 
+                    id: doc.id, 
+                    ...data, 
+                    dateObject: date 
+                };
+            })
+            .sort((a, b) => a.dateObject - b.dateObject);
         callback(messages);
     }, (error) => {
         console.error("[Firebase] Team Messages Listener failed:", error.code, error.message);
