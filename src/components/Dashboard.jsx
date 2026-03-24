@@ -8,8 +8,8 @@ import { TrendingUp, Calendar, Clock, Trophy, Plus, FileUp, Zap, Sparkles, Shiel
 import { useNavigate, Link } from 'react-router-dom';
 import { format, isToday, isThisWeek, differenceInDays, startOfDay, addDays, isAfter, isBefore } from 'date-fns';
 import { cn } from '../utils';
-import { getTeamMembers, leaveTeam, sendTeamMessage, subscribeToTeamMessages, updateMemberPosition } from '../services/firebase';
-import { Send, LogOut, MessageSquare, Edit2, Check, X } from 'lucide-react';
+import { getTeamMembers, leaveTeam, sendTeamMessage, subscribeToTeamMessages, updateMemberPosition, addNotification } from '../services/firebase';
+import { Send, LogOut, MessageSquare, Edit2, Check, X, Bell } from 'lucide-react';
 import { useRef } from 'react';
 
 const StatCard = ({ title, value, icon: Icon, color, delay, trend, onClick }) => {
@@ -90,6 +90,7 @@ const Dashboard = () => {
     const [editingMember, setEditingMember] = useState(null); // {id, position}
     const [newPosition, setNewPosition] = useState('');
     const msgEndRef = useRef(null);
+    const [subDetails, setSubDetails] = useState(null);
 
     // Fetch Team Members
     useEffect(() => {
@@ -108,6 +109,30 @@ const Dashboard = () => {
             };
         }
     }, [teamId]);
+
+    // Check subscription and expiry
+    useEffect(() => {
+        if (user) {
+            getUserData(user.uid).then(data => {
+                setSubDetails(data);
+                
+                // Reminder 5 days before
+                if (data.expiresAt) {
+                    const expiry = new Date(data.expiresAt);
+                    const now = new Date();
+                    const diffDays = differenceInDays(expiry, now);
+                    
+                    if (diffDays <= 5 && diffDays > 0) {
+                        addNotification(user.uid, {
+                            title: 'Tactical Warning: Subscription Expiring',
+                            content: `Your Team Edition subscription expires in ${diffDays} days. Renew now to avoid losing tactical access.`,
+                            type: 'warning'
+                        });
+                    }
+                }
+            });
+        }
+    }, [user.uid]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
@@ -180,11 +205,29 @@ const Dashboard = () => {
         if (!window.confirm("Are you sure you want to leave this team? You will return to your personal workspace.")) return;
         try {
             await leaveTeam(user.uid);
-            // Update local state via store
-            useAppStore.getState().setTeamId(user.uid);
-            useAppStore.getState().setUserRole('public');
             
-            // Re-sync with Firebase if listener is active
+            // Generate notification for the user
+            await addNotification(user.uid, {
+                title: 'Tactical Realignment',
+                content: `You have successfully left the team and returned to your personal deployment.`,
+                type: 'info'
+            });
+
+            // Update local state via store
+            const newTeamId = user.uid;
+            useAppStore.getState().setTeamId(newTeamId);
+            
+            // Only revert to public if they don't have a valid active subscription
+            const userData = await import('../services/firebase').then(f => f.getUserData(user.uid));
+            const hasValidSub = userData.hasSubscription && new Date(userData.expiresAt) > new Date();
+            
+            if (!hasValidSub && userRole === 'member') {
+                useAppStore.getState().setUserRole('public');
+            } else if (hasValidSub) {
+                // Keep subscriber role if they have one
+                useAppStore.getState().setUserRole(userData.role || 'subscriber');
+            }
+            
             window.location.reload(); 
         } catch (err) {
             alert("Failed to leave team: " + err.message);

@@ -363,6 +363,21 @@ export const saveEventToFirestore = async (event) => {
     });
 
     await setDoc(eventRef, cleanEvent);
+
+    // Add notification for all users that a new event was added
+    try {
+        const globalNotifRef = doc(db, "notifications", `event_${event.serverId}`);
+        await setDoc(globalNotifRef, {
+            type: 'announcement',
+            title: 'Tactical Alert: New Event Incoming',
+            content: `${event.eventName} has been added by command. Review details now.`,
+            timestamp: new Date().toISOString(),
+            isGlobal: true,
+            eventId: event.serverId
+        });
+    } catch (err) {
+        console.error("Global notification failed", err);
+    }
 };
 
 /**
@@ -448,9 +463,17 @@ export const approvePaymentRequest = async (requestId, userId, planRole) => {
         assignedRole: safeRole
     });
 
-    // 2. Update user role
+    // 2. Update user role and add expiry (30 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    
     const userRef = doc(db, "users", userId);
-    batch.update(userRef, { role: safeRole });
+    batch.update(userRef, { 
+        role: safeRole, 
+        hasSubscription: true,
+        premiumSince: new Date().toISOString(),
+        expiresAt: expiresAt.toISOString()
+    });
 
     await batch.commit();
 };
@@ -535,4 +558,50 @@ export const subscribeToTeamMessages = (teamId, callback) => {
     }, (error) => {
         console.error("[Firebase] Team Messages Listener failed:", error.code, error.message);
     });
+};
+
+/**
+ * FIRESTORE: Adds a notification for a specific user or globally.
+ */
+export const addNotification = async (userId, data) => {
+    if (!db) throw new Error("Firestore not initialized");
+    const notifId = crypto.randomUUID();
+    const notifRef = doc(db, "notifications", notifId);
+    
+    await setDoc(notifRef, {
+        ...data,
+        id: notifId,
+        userId: userId || null, // null means global
+        isRead: false,
+        timestamp: new Date().toISOString()
+    });
+};
+
+/**
+ * FIRESTORE: Live subscribe to notifications.
+ */
+export const subscribeToNotifications = (userId, callback) => {
+    if (!db) return null;
+    
+    // We listen for BOTH global notifications and user-specific ones
+    const q = query(
+        collection(db, "notifications"), 
+        orderBy("timestamp", "desc")
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+        const notifs = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(n => n.isGlobal || n.userId === userId);
+        callback(notifs);
+    });
+};
+
+/**
+ * FIRESTORE: Mark a notification as read.
+ */
+export const markNotificationRead = async (notifId) => {
+    if (!db) return;
+    const notifRef = doc(db, "notifications", notifId);
+    await updateDoc(notifRef, { isRead: true });
 };

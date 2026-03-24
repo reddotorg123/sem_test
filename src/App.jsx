@@ -167,7 +167,27 @@ function App() {
 
                         try {
                             const { subscribeToUserData } = await import('./services/firebase');
-                            unsubscribeUserData = subscribeToUserData(firebaseUser.uid, (userData) => {
+                            unsubscribeUserData = subscribeToUserData(firebaseUser.uid, async (userData) => {
+                                // --- SUBSCRIPTION VANGUARD: Check for Expiry ---
+                                if (userData.role === 'subscriber' && userData.expiresAt) {
+                                    const expiry = new Date(userData.expiresAt);
+                                    if (new Date() > expiry) {
+                                        console.warn('[Vanguard] Subscription expired. Reverting role...');
+                                        try {
+                                            const { updateUserRole, addNotification } = await import('./services/firebase');
+                                            await updateUserRole(firebaseUser.uid, 'public');
+                                            await addNotification(firebaseUser.uid, {
+                                                title: 'Tactical Deactivation',
+                                                content: 'Your subscription has expired. Access to Team Edition features has been restricted.',
+                                                type: 'warning'
+                                            });
+                                        } catch (err) {
+                                            console.error('[Vanguard] Downgrade failed:', err);
+                                        }
+                                        return; // Role update will re-trigger the listener
+                                    }
+                                }
+
                                 useAppStore.getState().setUserRole(userData.role);
                                 useAppStore.getState().setTeamId(userData.teamId); // This will return userData.teamId || uid from the firebase service
                                 useAppStore.getState().setUserProfile(userData);
