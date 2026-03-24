@@ -115,7 +115,7 @@ const AdminPanel = () => {
     const handlePaymentAction = async (request, action) => {
         try {
             if (action === 'approve') {
-                const roleToAssign = request.planRole || 'team_leader';
+                const roleToAssign = request.planRole || 'subscriber';
                 await approvePaymentRequest(request.id, request.userId, roleToAssign);
                 setUsers(prev => prev.map(u => u.id === request.userId ? { ...u, role: roleToAssign } : u));
             } else {
@@ -251,7 +251,7 @@ const AdminPanel = () => {
                             <option value="all">All Roles</option>
                             <option value="admin">Administrators</option>
                             <option value="event_manager">Event Managers</option>
-                            <option value="team_leader">Team Leaders</option>
+                            <option value="subscriber">Subscribers</option>
                             <option value="public">Public Agents</option>
                         </select>
                     )}
@@ -352,6 +352,7 @@ const AdminPanel = () => {
                                                                 "px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded border",
                                                                 u.role === 'admin' ? "bg-rose-50 border-rose-100 text-rose-600" :
                                                                 u.role === 'event_manager' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                                                u.role === 'subscriber' ? "bg-indigo-50 border-indigo-100 text-indigo-600" :
                                                                 u.role === 'team_leader' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
                                                                 "bg-slate-100 border-slate-200 text-slate-500"
                                                             )}>{u.role}</span>
@@ -374,7 +375,7 @@ const AdminPanel = () => {
                                                         className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-600 h-9 sm:h-10"
                                                     >
                                                         <option value="public">Public</option>
-                                                        <option value="team_leader">Team Leader</option>
+                                                        <option value="subscriber">Subscriber</option>
                                                         <option value="event_manager">Event Manager</option>
                                                         <option value="admin">Administrator</option>
                                                     </select>

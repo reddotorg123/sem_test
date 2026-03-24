@@ -177,7 +177,7 @@ const Analytics = () => {
                 <div onClick={() => openAnalyticsModal('prize', 'Revenue Breakdown')} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-95">
                     <StatCard
                         title="Total Prize Won"
-                        value={`₹${(analytics.wonPrize / 1000).toFixed(1)}k`}
+                        value={analytics.wonPrize >= 1000 ? `₹${(analytics.wonPrize / 1000).toFixed(1)}k` : `₹${analytics.wonPrize}`}
                         icon={DollarSign}
                         subtitle="GROSS REVENUE"
                         colorClass="bg-emerald-500"

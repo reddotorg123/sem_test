@@ -88,7 +88,8 @@ const EditEventModal = () => {
         members: '',
         noOfTeams: '',
         prizeWon: '',
-        teamName: ''
+        teamName: '',
+        customEventType: ''
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,10 +97,11 @@ const EditEventModal = () => {
 
     useEffect(() => {
         if (event) {
+            const isCustomType = event.eventType && !Object.values(EventType).includes(event.eventType);
             setFormData({
                 collegeName: event.collegeName || '',
                 eventName: event.eventName || '',
-                eventType: event.eventType || EventType.HACKATHON,
+                eventType: isCustomType ? 'Other' : (event.eventType || EventType.HACKATHON),
                 registrationDeadline: event.registrationDeadline ? formatDateForInput(event.registrationDeadline) : '',
                 startDate: event.startDate ? formatDateForInput(event.startDate) : '',
                 endDate: event.endDate ? formatDateForInput(event.endDate) : '',
@@ -123,7 +125,8 @@ const EditEventModal = () => {
                 members: event.members || '',
                 noOfTeams: event.noOfTeams || '',
                 prizeWon: event.prizeWon || '',
-                teamName: event.teamName || ''
+                teamName: event.teamName || '',
+                customEventType: (event.eventType && !Object.values(EventType).includes(event.eventType)) ? event.eventType : ''
             });
         }
     }, [event]);
@@ -159,12 +162,14 @@ const EditEventModal = () => {
             const updates = {
                 ...formData,
                 prizeAmount: parseFloat(formData.prizeAmount) || 0,
+                prizeWon: parseFloat(formData.prizeWon) || 0,
                 registrationFee: parseFloat(formData.registrationFee) || 0,
                 teamSize: parseInt(formData.teamSize) || 1,
                 contactNumbers: formData.contactNumbers.split(',').map(c => c.trim()).filter(Boolean),
                 registrationDeadline: new Date(formData.registrationDeadline),
                 startDate: new Date(formData.startDate),
-                endDate: new Date(formData.endDate)
+                endDate: new Date(formData.endDate),
+                eventType: (formData.eventType === 'Other' && formData.customEventType.trim()) ? formData.customEventType : formData.eventType
             };
 
             await updateEvent(selectedEvent, updates);
@@ -279,6 +284,17 @@ const EditEventModal = () => {
                                                     <select name="eventType" value={formData.eventType} onChange={handleChange} required className="input-premium">
                                                         {Object.values(EventType).map(t => <option key={t} value={t}>{t}</option>)}
                                                     </select>
+                                                    {formData.eventType === 'Other' && (
+                                                        <input 
+                                                            type="text" 
+                                                            name="customEventType" 
+                                                            value={formData.customEventType} 
+                                                            onChange={handleChange} 
+                                                            required 
+                                                            className="input-premium mt-2" 
+                                                            placeholder="Specify Event Type" 
+                                                        />
+                                                    )}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="label-premium">Status</label>
@@ -322,6 +338,13 @@ const EditEventModal = () => {
                                                     <div className="relative">
                                                         <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500" size={18} />
                                                         <input type="number" name="prizeAmount" value={formData.prizeAmount} onChange={handleChange} className="input-premium pl-12 text-lg font-black text-amber-600" placeholder="0" />
+                                                    </div>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label className="label-premium">Prize Won (₹)</label>
+                                                    <div className="relative">
+                                                        <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={18} />
+                                                        <input type="number" name="prizeWon" value={formData.prizeWon} onChange={handleChange} className="input-premium pl-12 text-lg font-black text-emerald-600" placeholder="0" />
                                                     </div>
                                                 </div>
                                                 <div className="form-group">

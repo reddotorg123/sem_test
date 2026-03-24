@@ -435,7 +435,7 @@ export const approvePaymentRequest = async (requestId, userId, planRole) => {
 
     // SAFETY: Never allow payment approval to set admin role
     const safeRole = (!planRole || planRole === 'admin' || planRole === 'event_manager') 
-        ? 'team_leader' 
+        ? 'subscriber' 
         : planRole;
 
     const batch = writeBatch(db);
@@ -476,4 +476,56 @@ export const rejectPaymentRequest = async (requestId, userId) => {
     }
 
     await batch.commit();
+};
+
+/**
+ * FIRESTORE: Allows a user to leave their current team and return to their personal team.
+ */
+export const leaveTeam = async (uid) => {
+    if (!db) throw new Error("Firestore not initialized");
+    const userRef = doc(db, "users", uid);
+    // Setting teamId to own uid effectively makes them leave any joined team
+    // and return to their own personal team context.
+    await updateDoc(userRef, { 
+        teamId: uid,
+        position: 'Explorer' // Reset position when leaving
+    });
+};
+
+/**
+ * FIRESTORE: Sends a message to the team message board.
+ */
+export const sendTeamMessage = async (teamId, senderId, senderName, content) => {
+    if (!db) throw new Error("Firestore not initialized");
+    // Fallback for environment where crypto.randomUUID might not be available
+    const messageId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const messageRef = doc(db, "team_messages", messageId);
+    
+    await setDoc(messageRef, {
+        messageId,
+        teamId,
+        senderId,
+        senderName,
+        content,
+        timestamp: new Date().toISOString()
+    });
+};
+
+/**
+ * FIRESTORE: Live subscribe to team messages.
+ */
+export const subscribeToTeamMessages = (teamId, callback) => {
+    if (!db || !teamId) return null;
+    const q = query(
+        collection(db, "team_messages"), 
+        where("teamId", "==", teamId),
+        orderBy("timestamp", "asc")
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(messages);
+    });
 };

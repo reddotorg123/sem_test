@@ -45,7 +45,7 @@ const JoinTeam = () => {
         // Public users ARE allowed to join teams (they become 'member')
         // if (userRole === 'public') { ... removed this barrier ... }
 
-        if (userRole === 'team_leader' || userRole === 'admin') {
+        if (userRole === 'subscriber' || userRole === 'team_leader' || userRole === 'admin') {
             setErrorMsg("You are already a Team Leader or Admin. You cannot join another team.");
             setStatus('error');
             return;

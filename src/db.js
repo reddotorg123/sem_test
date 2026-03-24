@@ -285,7 +285,7 @@ export const getMergedEvents = async () => {
         return {
             ...event,
             status: status,
-            prizeWon: stats?.prizeWon || 0,
+            prizeWon: parseFloat(stats?.prizeWon) || parseFloat(event.prizeWon) || 0,
             isShortlisted: !!stats?.isShortlisted,
             teamDataUpdatedAt: stats?.updatedAt || null
         };

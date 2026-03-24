@@ -42,7 +42,7 @@ const PaymentModal = () => {
             name: 'Team Edition',
             price: 10,
             icon: Crown,
-            role: 'team_leader',
+            role: 'subscriber',
             features: ['Join or Create Teams', 'Custom Team Strategy', 'Advanced Analytics', 'Unlimited Shortlisting']
         }
     ];

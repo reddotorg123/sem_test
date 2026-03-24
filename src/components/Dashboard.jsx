@@ -8,7 +8,9 @@ import { TrendingUp, Calendar, Clock, Trophy, Plus, FileUp, Zap, Sparkles, Shiel
 import { useNavigate, Link } from 'react-router-dom';
 import { format, isToday, isThisWeek, differenceInDays, startOfDay, addDays, isAfter, isBefore } from 'date-fns';
 import { cn } from '../utils';
-import { getTeamMembers } from '../services/firebase';
+import { getTeamMembers, leaveTeam, sendTeamMessage, subscribeToTeamMessages, updateMemberPosition } from '../services/firebase';
+import { Send, LogOut, MessageSquare, Edit2, Check, X } from 'lucide-react';
+import { useRef } from 'react';
 
 const StatCard = ({ title, value, icon: Icon, color, delay, trend, onClick }) => {
     // Mapping of possible colors to explicit Tailwind classes (SEM Theme)
@@ -82,15 +84,37 @@ const Dashboard = () => {
     const resetFilters = useAppStore((state) => state.resetFilters);
 
     const [teamMembers, setTeamMembers] = useState([]);
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [editingMember, setEditingMember] = useState(null); // {id, position}
+    const [newPosition, setNewPosition] = useState('');
+    const msgEndRef = useRef(null);
 
     // Fetch Team Members
     useEffect(() => {
         if (teamId) {
-            getTeamMembers(teamId).then(members => {
+            const unsubscribeMembers = getTeamMembers(teamId).then(members => {
                 setTeamMembers(members);
             });
+            
+            // Real-time messages
+            const unsubscribeMessages = subscribeToTeamMessages(teamId, (msgs) => {
+                setMessages(msgs);
+            });
+
+            return () => {
+                if (unsubscribeMessages) unsubscribeMessages();
+            };
         }
     }, [teamId]);
+
+    // Scroll to bottom when messages change
+    useEffect(() => {
+        if (isChatOpen && msgEndRef.current) {
+            msgEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, isChatOpen]);
 
     // Live data from Dexie (Merged with Team Stats)
     const events = useLiveQuery(async () => {
@@ -151,6 +175,44 @@ const Dashboard = () => {
 
     const isRoleVerified = useAppStore((state) => state.isRoleVerified);
     const canManage = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
+
+    const handleLeaveTeam = async () => {
+        if (!window.confirm("Are you sure you want to leave this team? You will return to your personal workspace.")) return;
+        try {
+            await leaveTeam(user.uid);
+            // Update local state via store
+            useAppStore.getState().setTeamId(user.uid);
+            useAppStore.getState().setUserRole('public');
+            
+            // Re-sync with Firebase if listener is active
+            window.location.reload(); 
+        } catch (err) {
+            alert("Failed to leave team: " + err.message);
+        }
+    };
+
+    const handleSendMessage = async (e) => {
+        e.preventDefault();
+        if (!newMessage.trim()) return;
+        try {
+            await sendTeamMessage(teamId, user.uid, user.displayName, newMessage);
+            setNewMessage('');
+        } catch (err) {
+            console.error("Message failed", err);
+        }
+    };
+
+    const handleUpdatePosition = async (memberId) => {
+        try {
+            await updateMemberPosition(memberId, newPosition);
+            setEditingMember(null);
+            // Refresh members
+            const members = await getTeamMembers(teamId);
+            setTeamMembers(members);
+        } catch (err) {
+            alert("Failed to update position: " + err.message);
+        }
+    };
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -391,10 +453,10 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 {teamMembers.length > 0 ? teamMembers.map((member, idx) => (
-                                    <div key={member.id || idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-600 overflow-hidden flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-500/20">
+                                    <div key={member.id || idx} className="group/member flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 transition-all">
+                                        <div className="w-12 h-12 rounded-xl bg-indigo-600 overflow-hidden flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/20">
                                             {member.photoURL ? (
                                                 <img src={member.photoURL} alt={member.displayName} className="w-full h-full object-cover" />
                                             ) : (
@@ -402,39 +464,124 @@ const Dashboard = () => {
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-black text-slate-900 dark:text-white truncate uppercase tracking-wider">{member.displayName || 'Unknown Unit'}</p>
-                                            <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">{member.position || 'Explorer'}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-black text-slate-900 dark:text-white truncate uppercase tracking-wider">{member.displayName || 'Unknown Unit'}</p>
+                                                {member.id === teamId && <Crown size={12} className="text-amber-500" title="Team Leader" />}
+                                                {member.id === user.uid && <span className="px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-[8px] font-black text-indigo-600 uppercase">You</span>}
+                                            </div>
+                                            
+                                            {editingMember === member.id ? (
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <input 
+                                                        autoFocus
+                                                        value={newPosition}
+                                                        onChange={(e) => setNewPosition(e.target.value)}
+                                                        className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-[10px] font-bold text-slate-900 dark:text-white"
+                                                    />
+                                                    <button onClick={() => handleUpdatePosition(member.id)} className="p-1 px-1.5 bg-indigo-600 text-white rounded text-[10px] font-black"><Check size={10} /></button>
+                                                    <button onClick={() => setEditingMember(null)} className="p-1 px-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded text-[10px] font-black"><X size={10} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">{member.position || 'Explorer'}</p>
+                                                    {(user.uid === teamId && member.id !== teamId) && (
+                                                        <button 
+                                                            onClick={() => { setEditingMember(member.id); setNewPosition(member.position || 'Explorer'); }}
+                                                            className="opacity-0 group-hover/member:opacity-100 p-1 text-slate-400 hover:text-indigo-600 transition-all"
+                                                        >
+                                                            <Edit2 size={12} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="col-span-2 text-center py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <div className="text-center py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                         No secondary units deployed.
                                     </div>
                                 )}
                             </div>
 
-                            {userRole !== 'public' && (
-                                <div className="grid grid-cols-2 gap-3 mt-6">
+                            <div className="grid grid-cols-2 gap-3 mt-6">
+                                {userRole === 'subscriber' || user.uid === teamId ? (
                                     <button 
                                         onClick={() => openModal('teamInvite')}
                                         className="w-full py-4 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
                                     >
                                         <Plus size={14} /> Invite Members
                                     </button>
+                                ) : (
                                     <button 
-                                        onClick={() => {
-                                            const inviteUrl = prompt("Enter the Team Invite Link or Team ID to join:");
-                                            if (inviteUrl && inviteUrl.trim() !== '') {
-                                                const id = inviteUrl.includes('/invite/') ? inviteUrl.split('/invite/')[1] : inviteUrl.trim();
-                                                navigate(`/invite/${id}`);
-                                            }
-                                        }}
-                                        className="w-full py-4 border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+                                        onClick={handleLeaveTeam}
+                                        className="w-full py-4 bg-rose-50 dark:bg-rose-900/40 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <ArrowRight size={14} /> Join Team
+                                        <LogOut size={14} /> Leave Team
                                     </button>
-                                </div>
-                            )}
+                                )}
+                                <button 
+                                    onClick={() => setIsChatOpen(!isChatOpen)}
+                                    className={cn(
+                                        "w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
+                                        isChatOpen ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" : "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 hover:bg-indigo-100"
+                                    )}
+                                >
+                                    <MessageSquare size={14} /> {isChatOpen ? 'Close Intel' : 'Team Intel'}
+                                </button>
+                            </div>
+
+                            {/* Team Messenger Section */}
+                            <AnimatePresence>
+                                {isChatOpen && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="mt-6 pt-6 border-t border-indigo-600/10 overflow-hidden"
+                                    >
+                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex flex-col h-[300px]">
+                                            <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 custom-scrollbar">
+                                                {messages.length > 0 ? messages.map((msg, i) => (
+                                                    <div key={msg.id || i} className={cn("flex flex-col", msg.senderId === user.uid ? "items-end" : "items-start")}>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{msg.senderName || 'Unknown'}</span>
+                                                            <span className="text-[7px] text-slate-500">{format(new Date(msg.timestamp), 'HH:mm')}</span>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "px-4 py-2 rounded-2xl text-xs font-bold max-w-[85%] break-words",
+                                                            msg.senderId === user.uid ? "bg-indigo-600 text-white rounded-tr-none" : "bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 rounded-tl-none shadow-sm"
+                                                        )}>
+                                                            {msg.content}
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                                                        <MessageSquare size={32} className="text-slate-200 mb-2" />
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No intel decoded yet.</p>
+                                                    </div>
+                                                )}
+                                                <div ref={msgEndRef} />
+                                            </div>
+                                            
+                                            <form onSubmit={handleSendMessage} className="relative">
+                                                <input 
+                                                    type="text"
+                                                    value={newMessage}
+                                                    onChange={(e) => setNewMessage(e.target.value)}
+                                                    placeholder="Send tactical intel..."
+                                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 dark:text-white pr-12 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                                                />
+                                                <button 
+                                                    type="submit"
+                                                    className="absolute right-2 top-1.5 w-9 h-9 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                                                >
+                                                    <Send size={14} strokeWidth={3} />
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
                 </div>

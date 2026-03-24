@@ -211,8 +211,9 @@ const EventDetailsModal = () => {
     const handlePrizeWonChange = async () => {
         const amount = prompt("Enter prize amount won by your team:", event.prizeWon || 0);
         if (amount === null) return;
+        const eventId = event.serverId || event.id;
         const { updateTeamEventStatus } = await import('../db');
-        await updateTeamEventStatus(event.serverId, { prizeWon: amount });
+        await updateTeamEventStatus(eventId, { prizeWon: parseFloat(amount) || 0 });
     };
 
     return ReactDOM.createPortal(

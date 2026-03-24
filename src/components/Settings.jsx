@@ -66,7 +66,7 @@ const Settings = () => {
         if (!confirm(`Approve payment of ₹${request.amount} for ${request.userEmail}?`)) return;
 
         try {
-            const planRole = request.planId === 'team' ? 'team_leader' : 'member';
+            const planRole = request.planId === 'team' ? 'subscriber' : 'member';
             await approvePaymentRequest(request.id, request.userId, planRole);
             setPaymentRequests(prev => prev.map(r => r.id === request.id ? { ...r, status: 'approved' } : r));
             alert('Payment approved and user role upgraded!');
@@ -381,6 +381,7 @@ const Settings = () => {
                                         >
                                             <option value="admin">Admin</option>
                                             <option value="event_manager">Manager</option>
+                                            <option value="subscriber">Subscriber</option>
                                             <option value="member">Member</option>
                                         </select>
                                     </div>
@@ -400,7 +401,7 @@ const Settings = () => {
                 </SettingSection>
             )}
 
-            {userRole === 'team_leader' && (
+            {(userRole === 'subscriber' || userRole === 'team_leader') && (
                 <SettingSection title="Team Management" description="Invite members to your team workspace" icon={UserCog}>
                     <div className="space-y-4">
                         <div className="p-6 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-inner">

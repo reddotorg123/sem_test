@@ -48,10 +48,12 @@ const AddEventModal = () => {
         collegeName: '',
         eventName: '',
         eventType: EventType.HACKATHON,
+        customEventType: '',
         registrationDeadline: '',
         startDate: '',
         endDate: '',
         prizeAmount: '',
+        prizeWon: '',
         registrationFee: '',
         accommodation: false,
         location: '',
@@ -139,10 +141,13 @@ const AddEventModal = () => {
         try {
             const { teamId, user, userRole } = useAppStore.getState();
             const isAdmin = userRole === 'admin' || userRole === 'event_manager';
+            const actualEventType = (formData.eventType === EventType.OTHER && formData.customEventType.trim()) ? formData.customEventType : formData.eventType;
             
             const eventData = {
                 ...formData,
+                eventType: actualEventType,
                 prizeAmount: parseFloat(formData.prizeAmount) || 0,
+                prizeWon: parseFloat(formData.prizeWon) || 0,
                 registrationFee: parseFloat(formData.registrationFee) || 0,
                 teamSize: parseInt(formData.teamSize) || 1,
                 contactNumbers: formData.contactNumbers.split(',').map(c => c.trim()).filter(Boolean),
@@ -151,7 +156,7 @@ const AddEventModal = () => {
             };
             await addEvent(eventData);
             closeModal('addEvent');
-            setFormData({ collegeName: '', eventName: '', eventType: EventType.HACKATHON, registrationDeadline: '', startDate: '', endDate: '', prizeAmount: '', registrationFee: '', accommodation: false, location: '', isOnline: false, contactNumbers: '', posterUrl: '', posterBlob: null, website: '', registrationLink: '', description: '', teamSize: '1', teamName: '', eligibility: '', leader: '', members: '', contact1: '', contact2: '' });
+            setFormData({ collegeName: '', eventName: '', eventType: EventType.HACKATHON, customEventType: '', registrationDeadline: '', startDate: '', endDate: '', prizeAmount: '', prizeWon: '', registrationFee: '', accommodation: false, location: '', isOnline: false, contactNumbers: '', posterUrl: '', posterBlob: null, website: '', registrationLink: '', description: '', teamSize: '1', teamName: '', eligibility: '', leader: '', members: '', contact1: '', contact2: '' });
         } catch (error) {
             alert(`CRITICAL ERROR: ${error.message}`);
         } finally {
@@ -234,6 +239,17 @@ const AddEventModal = () => {
                                             <select name="eventType" value={formData.eventType} onChange={handleChange} required={activeTab === 'basic'} className="input-premium">
                                                 {Object.values(EventType).map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
+                                            {formData.eventType === EventType.OTHER && (
+                                                <input 
+                                                    type="text" 
+                                                    name="customEventType" 
+                                                    value={formData.customEventType} 
+                                                    onChange={handleChange} 
+                                                    required={activeTab === 'basic'} 
+                                                    className="input-premium mt-2" 
+                                                    placeholder="Specify Event Type (e.g. Workshop)" 
+                                                />
+                                            )}
                                         </div>
                                         <div className="form-group">
                                             <label className="label-premium">Team Size</label>
@@ -293,6 +309,10 @@ const AddEventModal = () => {
                                     <div className="form-group">
                                         <label className="label-premium">Total Prize amount (₹)</label>
                                         <input type="number" name="prizeAmount" value={formData.prizeAmount} onChange={handleChange} className="input-premium" placeholder="0" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label-premium">Prize Won (₹)</label>
+                                        <input type="number" name="prizeWon" value={formData.prizeWon} onChange={handleChange} className="input-premium" placeholder="Amount if you already won" />
                                     </div>
 
                                     <div className="flex flex-col gap-4">

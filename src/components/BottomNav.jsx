@@ -25,7 +25,7 @@ const BottomNav = () => {
     ];
 
     const filteredItems = navItems.filter(item =>
-        !(item.hideIfUpgrade && (userRole === 'team_leader' || userRole === 'admin'))
+        !(item.hideIfUpgrade && (userRole === 'subscriber' || userRole === 'team_leader' || userRole === 'admin'))
     );
 
     return (

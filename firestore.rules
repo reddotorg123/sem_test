@@ -2,52 +2,149 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to get the role of the user making the request
-    function getUserRole() {
-      // Check if user document exists before accessing data
+    /**
+     * 🔐 CORE AUTHENTICATION & ROLE HELPERS
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Safely get user document fields without failing on null
+    function getUserData() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
-        : "member"; // Default fallback if needed
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : {"role": "public", "teamId": null};
     }
 
+    function isAdmin() {
+      return getUserData().role == "admin";
+    }
+
+    function isManager() {
+      return getUserData().role == "event_manager";
+    }
+
+    function getTeamId() {
+      return getUserData().teamId;
+    }
+
+    /**
+     * 🌍 GLOBAL & PERSONAL EVENTS
+     * Holds the shared catalog of events and any private user-created events.
+     */
     match /events/{eventId} {
-      // Anyone logged in can view events
-      allow read: if request.auth != null;
+      // READ: Authenticated users can read the catalog.
+      allow read: if isSignedIn(); 
 
-      // Only Admins and Event Managers can modify events
-      allow create, update, delete: 
-        if getUserRole() == "admin" || getUserRole() == "event_manager";
+      // CREATE: Everyone can inject events (validated client-side as global/local).
+      allow create: if isSignedIn();
+
+      // UPDATE/DELETE: Only Admins/Managers OR the creator can modify.
+      allow update, delete: if isAdmin() || isManager() || (resource != null && resource.data.createdBy == request.auth.uid);
     }
 
+    /**
+     * 👥 USER PROFILES
+     * Handles authentication, roles (Admin, Subscriber, Manager, Public), and team membership.
+     */
     match /users/{userId} {
-      // Restricted Read: Users can read their own profile; Admins can read all profiles.
-      allow read: if request.auth != null && (request.auth.uid == userId || getUserRole() == "admin");
-
-      // Secure Creation: User must be themselves AND they cannot assign themselves anything but "public" role.
-      allow create: if request.auth != null 
-                    && request.auth.uid == userId 
-                    && request.resource.data.role == "public";
+      // READ: Everyone can view basic profiles to enable team discovery and invites.
+      allow read: if isSignedIn();
       
-      // Secure Update: Only admins can update other profiles.
-      // Users can update their own profile AS LONG AS they do not try to elevate their role.
-      allow update: if getUserRole() == "admin" || (
-                      request.auth.uid == userId &&
-                      request.resource.data.role == resource.data.role
+      // CREATE: Initial registration as "public".
+      allow create: if isOwner(userId) && request.resource.data.role == "public";
+      
+      // UPDATE: (1) Admin/Manager Console (2) User Self-Service (3) Team Leader Updates Member Position
+      allow update: if isAdmin() || (
+                      isOwner(userId) && (
+                        // Protect critical roles
+                        (request.resource.data.role == resource.data.role || request.resource.data.role in ["public", "member", "subscriber"]) &&
+                        (request.resource.data.email == resource.data.email)
+                      )
+                    ) || (
+                      isSignedIn() && 
+                      resource.data.teamId == request.auth.uid && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['position'])
                     );
+
+      // DELETE: Restricted to Admins (Soft-delete is handled via update role: 'deleted').
+      allow delete: if isAdmin();
     }
 
+    /**
+     * 📊 TEAM EVENT DATA (Status/Prize Tracking)
+     * Stores private team-specific or user-specific progress ON specific events.
+     * DOCUMENT ID: {teamId}_{eventId} or {userId}_{eventId}
+     */
+    match /teamEventData/{docId} {
+      // Check if user belongs to the associated team or is the individual owner
+      function isMemberOfTeam(targetTeamId) {
+        return targetTeamId == request.auth.uid || targetTeamId == getTeamId();
+      }
+
+      allow read: if isSignedIn() && (isMemberOfTeam(resource.data.teamId) || isAdmin());
+      allow create: if isSignedIn() && isMemberOfTeam(request.resource.data.teamId);
+      allow update: if isSignedIn() && isMemberOfTeam(resource.data.teamId);
+      allow delete: if isAdmin() || (isSignedIn() && isMemberOfTeam(resource.data.teamId));
+    }
+
+    /**
+     * 👤 INDIVIDUAL USER NOTES (Fully Private)
+     */
+    match /notes/{noteId} {
+      allow read, write: if isSignedIn() && (
+        (resource != null && resource.data.createdBy == request.auth.uid) ||
+        (request.resource != null && request.resource.data.createdBy == request.auth.uid)
+      );
+    }
+
+    /**
+     * 🏛 COLLEGE REPOSITORY
+     */
+    match /colleges/{collegeId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isManager();
+    }
+
+    /**
+     * 💳 PAYMENT VERIFICATION (Billing Grid)
+     */
     match /payment_requests/{requestId} {
-      // Secure Creation: Users can only create requests assigned to their UID, and status must be 'pending'
-      allow create: if request.auth != null 
-                    && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.status == "pending";
+      // User creates as 'pending'.
+      allow create: if isSignedIn() && 
+                    request.resource.data.userId == request.auth.uid && 
+                    request.resource.data.status == "pending";
       
-      // Allow users to read their own requests
-      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+      // Reading: Admin sees all, User sees their own.
+      allow read: if isAdmin() || (resource != null && resource.data.userId == request.auth.uid);
       
-      // Allow admins full access
-      allow read, update, delete: if getUserRole() == "admin";
+      // Processing: Only Admins can approve/reject/delete.
+      allow update, delete: if isAdmin();
     }
 
+    /**
+     * ⚙️ SYSTEM SETTINGS
+     */
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    /**
+     * 💬 TEAM MESSAGES (Intel Channel)
+     */
+    match /team_messages/{messageId} {
+      function isMemberOfTeam(teamId) {
+        return teamId == request.auth.uid || teamId == getTeamId();
+      }
+      
+      allow read: if isSignedIn() && isMemberOfTeam(resource.data.teamId);
+      allow create: if isSignedIn() && isMemberOfTeam(request.resource.data.teamId);
+      allow update, delete: if isAdmin() || (resource != null && resource.data.senderId == request.auth.uid);
+    }
   }
 }
