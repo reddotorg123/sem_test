@@ -233,7 +233,7 @@ const EditEventModal = () => {
                         </div>
                         <div>
                             <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase">Update Record</h2>
-                            <p className="opacity-70 text-xs font-bold tracking-widest uppercase">Target ID: {selectedEvent.substring(0, 8)}...</p>
+                            <p className="opacity-70 text-xs font-bold tracking-widest uppercase">Target ID: {String(selectedEvent).substring(0, 8)}...</p>
                         </div>
                     </div>
                 </div>
