@@ -113,14 +113,14 @@ export const useAppStore = create(
 
             // --- FIREBASE INFRASTRUCTURE ---
             // This is the project ID and API key the user provides in Settings
-            firebaseConfig: JSON.parse(localStorage.getItem('firebase_config') || `{
-                "apiKey": "AIzaSyB0aNosXLTCmX3s4M-0Doh4lRPPMX2TRmU",
-                "authDomain": "eventmasterapp-2693e.firebaseapp.com",
-                "projectId": "eventmasterapp-2693e",
-                "storageBucket": "eventmasterapp-2693e.firebasestorage.app",
-                "messagingSenderId": "854191003395",
-                "appId": "1:854191003395:web:a878d82ba5c3b369437b36"
-            }`),
+            firebaseConfig: JSON.parse(localStorage.getItem('firebase_config') || JSON.stringify({
+                apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+                authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+                projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+                storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+                messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+                appId: import.meta.env.VITE_FIREBASE_APP_ID
+            })),
             setFirebaseConfig: (config) => {
                 localStorage.setItem('firebase_config', JSON.stringify(config));
                 set({ firebaseConfig: config });

@@ -9,7 +9,9 @@ import { auth, db, getTeamMembers, updateMemberPosition } from '../services/fire
 const TeamInviteModal = () => {
     const isOpen = useAppStore((state) => state.modals.teamInvite);
     const closeModal = useAppStore((state) => state.closeModal);
+    const user = useAppStore((state) => state.user);
     const userRole = useAppStore((state) => state.userRole);
+    const teamId = useAppStore((state) => state.teamId);
     const navigate = useNavigate();
 
     const [inviteCode, setInviteCode] = useState('');
@@ -23,11 +25,11 @@ const TeamInviteModal = () => {
 
     // Load team members
     const fetchMembers = async () => {
-        if (!auth?.currentUser) return;
+        const currentTeamId = teamId || auth?.currentUser?.uid;
+        if (!currentTeamId) return;
         setIsLoadingMembers(true);
         try {
-            const teamId = auth.currentUser.uid;
-            const fetched = await getTeamMembers(teamId);
+            const fetched = await getTeamMembers(currentTeamId);
             setMembers(fetched);
         } catch (error) {
             console.error('Failed to fetch members', error);
@@ -37,25 +39,29 @@ const TeamInviteModal = () => {
     };
 
     useEffect(() => {
-        if (isOpen && auth?.currentUser) {
+        if (isOpen && (teamId || auth?.currentUser)) {
             fetchMembers();
-            // Get invite code
-            const userRef = doc(db, 'users', auth.currentUser.uid);
-            getDoc(userRef).then(docSnap => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.inviteCode) setInviteCode(data.inviteCode);
-                }
-            });
+            // Get invite code (Always from the team owner's profile)
+            const ownerId = teamId || auth?.currentUser?.uid;
+            if (ownerId) {
+                const userRef = doc(db, 'users', ownerId);
+                getDoc(userRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.inviteCode) setInviteCode(data.inviteCode);
+                    }
+                });
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, teamId]);
 
     const generateLink = async () => {
         setIsGenerating(true);
         try {
             const newCode = Array.from({ length: 8 }, () => Math.random().toString(36).charAt(2)).join('').toUpperCase();
             if (auth?.currentUser) {
-                const userRef = doc(db, 'users', auth.currentUser.uid);
+                const ownerId = teamId || auth.currentUser.uid;
+                const userRef = doc(db, 'users', ownerId);
                 await updateDoc(userRef, { inviteCode: newCode });
             }
             setInviteCode(newCode);
@@ -95,8 +101,9 @@ const TeamInviteModal = () => {
             }
 
             // 3. Update user's teamId and role
+            const ownerId = teamId || auth.currentUser.uid;
             await updateDoc(doc(db, "users", targetUserId), {
-                teamId: auth.currentUser.uid,
+                teamId: ownerId,
                 role: 'member'
             });
 
@@ -144,7 +151,7 @@ const TeamInviteModal = () => {
                         onClick={() => closeModal('teamInvite')}
                     />
 
-                    {userRole === 'public' ? (
+                    {false ? (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -279,10 +286,10 @@ const TeamInviteModal = () => {
                                     <p className="text-[10px] font-bold text-indigo-200 mb-6 uppercase tracking-[0.2em] relative z-10">Invite Link for Automatic Onboarding</p>
                                     
                                     <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 relative z-10">
-                                        <code className="flex-1 text-[10px] font-black truncate">{window.location.origin}/invite/{auth?.currentUser?.uid}</code>
+                                        <code className="flex-1 text-[10px] font-black truncate">{window.location.origin}/invite/{teamId || auth?.currentUser?.uid}</code>
                                         <button 
                                             onClick={() => {
-                                                navigator.clipboard.writeText(`${window.location.origin}/invite/${auth?.currentUser?.uid}`);
+                                                navigator.clipboard.writeText(`${window.location.origin}/invite/${teamId || auth?.currentUser?.uid}`);
                                                 setCopied(true);
                                                 setTimeout(() => setCopied(false), 2000);
                                             }}
