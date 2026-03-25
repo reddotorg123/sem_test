@@ -169,6 +169,18 @@ export const getTeamMembers = async (teamId) => {
 };
 
 /**
+ * FIRESTORE: Live subscribe to team members.
+ */
+export const subscribeToTeamMembers = (teamId, callback) => {
+    if (!db || !teamId) return null;
+    const q = query(collection(db, "users"), where("teamId", "==", teamId));
+    return onSnapshot(q, (snapshot) => {
+        const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(members);
+    });
+};
+
+/**
  * FIRESTORE: Update profile data
  */
 export const updateUserProfile = async (uid, data) => {

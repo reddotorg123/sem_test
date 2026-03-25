@@ -8,7 +8,7 @@ import { TrendingUp, Calendar, Clock, Trophy, Plus, FileUp, Zap, Sparkles, Shiel
 import { useNavigate, Link } from 'react-router-dom';
 import { format, isToday, isThisWeek, differenceInDays, startOfDay, addDays, isAfter, isBefore } from 'date-fns';
 import { cn } from '../utils';
-import { getTeamMembers, leaveTeam, sendTeamMessage, subscribeToTeamMessages, updateMemberPosition, updateUserStats } from '../services/firebase';
+import { getTeamMembers, leaveTeam, sendTeamMessage, subscribeToTeamMessages, updateMemberPosition, updateUserStats, subscribeToTeamMembers } from '../services/firebase';
 import { useRef } from 'react';
 import { showNotification } from '../notifications';
 
@@ -94,7 +94,7 @@ const Dashboard = () => {
     // Fetch Team Members
     useEffect(() => {
         if (teamId) {
-            const unsubscribeMembers = getTeamMembers(teamId).then(members => {
+            const unsubscribeMembers = subscribeToTeamMembers(teamId, (members) => {
                 setTeamMembers(members);
             });
             
@@ -116,6 +116,7 @@ const Dashboard = () => {
             });
 
             return () => {
+                if (unsubscribeMembers) unsubscribeMembers();
                 if (unsubscribeMessages) unsubscribeMessages();
             };
         }

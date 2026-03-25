@@ -17,22 +17,43 @@ const JoinTeam = () => {
 
     const [status, setStatus] = useState('idle'); // idle, loading, success, error
     const [errorMsg, setErrorMsg] = useState('');
+    const [resolvedTeamId, setResolvedTeamId] = useState(null);
     const [teamName, setTeamName] = useState('Team Workspace');
 
     useEffect(() => {
-        // Optionally fetch the team leader's name to show "Join [Name]'s Team"
-        const fetchLeaderInfo = async () => {
+        const resolveAndFetch = async () => {
             if (!db || !teamId) return;
+            setStatus('loading');
             try {
-                const leaderDoc = await getDoc(doc(db, 'users', teamId));
+                // 1. Try to fetch as direct UID
+                let leaderDoc = await getDoc(doc(db, 'users', teamId));
+                
+                // 2. If not a UID, try searching as an Invite Code
+                if (!leaderDoc.exists()) {
+                    const { query, collection, where, getDocs } = await import('firebase/firestore');
+                    const q = query(collection(db, 'users'), where('inviteCode', '==', teamId.toUpperCase()));
+                    const querySnapshot = await getDocs(q);
+                    
+                    if (!querySnapshot.empty) {
+                        leaderDoc = querySnapshot.docs[0];
+                    }
+                }
+
                 if (leaderDoc.exists()) {
                     setTeamName(`${leaderDoc.data().displayName || 'Leader'}'s Team`);
+                    setResolvedTeamId(leaderDoc.id);
+                    setStatus('idle');
+                } else {
+                    setErrorMsg("Invalid Team ID or Invite Code. Please check and try again.");
+                    setStatus('error');
                 }
             } catch (err) {
-                console.error("Could not fetch leader info", err);
+                console.error("Resolution failed", err);
+                setErrorMsg("Failed to connect to the tactical network.");
+                setStatus('error');
             }
         };
-        fetchLeaderInfo();
+        resolveAndFetch();
     }, [teamId]);
 
     const handleJoinTeam = async () => {
@@ -51,8 +72,14 @@ const JoinTeam = () => {
             return;
         }
 
+        if (!resolvedTeamId) {
+            setErrorMsg("Could not verify team. Please try again.");
+            setStatus('error');
+            return;
+        }
+
         const { teamId: currentTeamId } = useAppStore.getState();
-        if (currentTeamId && currentTeamId !== user.uid && currentTeamId !== teamId) {
+        if (currentTeamId && currentTeamId !== user.uid && currentTeamId !== resolvedTeamId) {
             setErrorMsg("You are already in another team. Please leave your current team before joining this one.");
             setStatus('error');
             return;
@@ -64,12 +91,12 @@ const JoinTeam = () => {
                 const userRef = doc(db, 'users', auth.currentUser.uid);
                 await updateDoc(userRef, {
                     role: 'member',
-                    teamId: teamId
+                    teamId: resolvedTeamId
                 });
 
                 // Update local role and team
                 setUserRole('member');
-                setTeamId(teamId);
+                setTeamId(resolvedTeamId);
                 setStatus('success');
 
                 setTimeout(() => {
