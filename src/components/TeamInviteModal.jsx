@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Link as LinkIcon, CheckCircle2, Copy, Plus, Loader2, Trash2, ShieldCheck, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db, getTeamMembers, updateMemberPosition } from '../services/firebase';
@@ -9,6 +10,7 @@ const TeamInviteModal = () => {
     const isOpen = useAppStore((state) => state.modals.teamInvite);
     const closeModal = useAppStore((state) => state.closeModal);
     const userRole = useAppStore((state) => state.userRole);
+    const navigate = useNavigate();
 
     const [inviteCode, setInviteCode] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -147,12 +149,32 @@ const TeamInviteModal = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 text-center shadow-2xl"
+                            className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 text-center shadow-2xl border border-slate-100 dark:border-slate-800"
                         >
-                            <Users size={32} className="mx-auto mb-4 text-slate-400" />
-                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Team Edition Required</h3>
-                            <p className="text-sm font-bold text-slate-500 mb-6">Upgrade to add up to 10 team members.</p>
-                            <button onClick={() => closeModal('teamInvite')} className="w-full py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold">Close</button>
+                            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 mx-auto mb-6">
+                                <Users size={32} />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter">Team Edition Required</h3>
+                            <p className="text-sm font-bold text-slate-500 mb-8 px-4">You need a subscription to START your own team and invite members.</p>
+                            
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={() => {
+                                        closeModal('teamInvite');
+                                        const id = window.prompt("Enter your Team Leader's UID to join:");
+                                        if (id) navigate(`/invite/${id}`);
+                                    }}
+                                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all"
+                                >
+                                    Join Existing Team
+                                </button>
+                                <button 
+                                    onClick={() => { closeModal('teamInvite'); useAppStore.getState().openModal('payment'); }} 
+                                    className="w-full py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                >
+                                    Upgrade Channel
+                                </button>
+                            </div>
                         </motion.div>
                     ) : (
                         <motion.div
