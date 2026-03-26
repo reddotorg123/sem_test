@@ -465,7 +465,7 @@ const EditEventModal = () => {
                                                 </label>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, posterBlob: null }))}
+                                                    onClick={() => setFormData(prev => ({ ...prev, posterBlob: null, posterUrl: '' }))}
                                                     className="px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-red-500 transition-all border border-transparent hover:border-red-500/20"
                                                 >
                                                     Flush
@@ -474,6 +474,13 @@ const EditEventModal = () => {
                                         </div>
                                     </div>
                                     <div className="space-y-6">
+                                        <div className="form-group">
+                                            <label className="label-premium">Neural Link 0 (Poster URL)</label>
+                                            <div className="relative">
+                                                <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={20} />
+                                                <input type="url" name="posterUrl" value={formData.posterUrl} onChange={handleChange} className="input-premium pl-12 border-emerald-100 dark:border-emerald-800" placeholder="https://cdn.example.com/poster.jpg" />
+                                            </div>
+                                        </div>
                                         <div className="form-group">
                                             <label className="label-premium">Neural Link 1 (Website)</label>
                                             <div className="relative">

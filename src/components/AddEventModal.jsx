@@ -18,15 +18,20 @@ const EventType = {
     OTHER: 'Other'
 };
 
-const PreviewImage = ({ blob }) => {
+const PreviewImage = ({ blob, url: posterUrl }) => {
     const [url, setUrl] = useState(null);
 
     useEffect(() => {
-        if (!(blob instanceof Blob)) return;
-        const newUrl = URL.createObjectURL(blob);
-        setUrl(newUrl);
-        return () => URL.revokeObjectURL(newUrl);
-    }, [blob]);
+        if (blob instanceof Blob) {
+            const newUrl = URL.createObjectURL(blob);
+            setUrl(newUrl);
+            return () => URL.revokeObjectURL(newUrl);
+        } else if (posterUrl) {
+            setUrl(posterUrl);
+        } else {
+            setUrl(null);
+        }
+    }, [blob, posterUrl]);
 
     if (!url) return null;
     return (
@@ -353,6 +358,13 @@ const AddEventModal = () => {
                                         </label>
                                     </div>
                                 </div>
+                                 <div className="form-group">
+                                    <label className="label-premium">Neural Link 0 (Poster URL)</label>
+                                    <div className="relative">
+                                        <ImageIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500" size={20} />
+                                        <input type="url" name="posterUrl" value={formData.posterUrl} onChange={handleChange} className="input-premium pl-16 text-emerald-600 font-black border-emerald-100 dark:border-emerald-900" placeholder="https://cdn.example.com/poster.jpg" />
+                                    </div>
+                                </div>
                                 <div className="form-group">
                                     <label className="label-premium">Website Link</label>
                                     <div className="relative">
@@ -402,7 +414,7 @@ const AddEventModal = () => {
                                 <div className="space-y-6">
                                     <label className="label-premium">Event Poster AI Scan</label>
                                     <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center min-h-[250px] relative group overflow-hidden">
-                                        {formData.posterBlob ? <PreviewImage blob={formData.posterBlob} /> : (
+                                        {(formData.posterBlob || formData.posterUrl) ? <PreviewImage blob={formData.posterBlob} url={formData.posterUrl} /> : (
                                             <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full p-8">
                                                 <Upload size={48} className="text-slate-300 mb-6 group-hover:text-indigo-600 group-hover:-translate-y-2 transition-all duration-500" />
                                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-2">Upload Poster</span>
@@ -419,10 +431,6 @@ const AddEventModal = () => {
                                     <div className="p-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2.5rem] border-2 border-indigo-100 dark:border-indigo-800">
                                         <h4 className="text-indigo-700 dark:text-indigo-400 font-black text-sm uppercase mb-4 flex items-center gap-2"><Info size={18} /> AI Assistant</h4>
                                         <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 font-bold leading-relaxed">Our AI assistant will scan your poster to automatically identify event names, dates, and prize details.</p>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="label-premium text-indigo-500">Asset Neural Link (URL Alternate)</label>
-                                        <input type="url" name="posterUrl" value={formData.posterUrl} onChange={handleChange} className="input-premium border-indigo-100 dark:border-indigo-900 shadow-xl" placeholder="https://cdn.example.com/asset.jpg" />
                                     </div>
                                 </div>
                             </div>
