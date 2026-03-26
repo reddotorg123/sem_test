@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { logoutUser } from '../services/firebase';
-import { Moon, Sun, Plus, Zap, LogOut, Settings as SettingsIcon, User, MessageSquare, Crown, CreditCard, FileText, ChevronDown, Shield } from 'lucide-react';
+import { Moon, Sun, Plus, Zap, LogOut, Settings as SettingsIcon, User, MessageSquare, Crown, CreditCard, FileText, ChevronDown, Shield, Users } from 'lucide-react';
 import { cn } from '../utils';
 
 const Header = () => {
@@ -14,6 +14,7 @@ const Header = () => {
     const cloudProvider = useAppStore((state) => state.cloudProvider);
     const userRole = useAppStore((state) => state.userRole);
     const isRoleVerified = useAppStore((state) => state.isRoleVerified);
+    const navigate = useNavigate();
     const canAdd = (userRole === 'admin' || userRole === 'event_manager') && isRoleVerified;
 
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -58,7 +59,7 @@ const Header = () => {
                     <div className="flex items-center">
                         <Link to="/" className="flex items-center group">
                             <div className="w-10 h-10 flex items-center justify-center bg-indigo-600 rounded-xl shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-                                <span className="text-white font-black text-xs">JD</span>
+                                <span className="text-white font-black text-xs">{(user?.displayName || user?.email || 'U').substring(0, 2).toUpperCase()}</span>
                             </div>
                             <div className="flex flex-col ml-3">
                                 <span className="text-xl font-black text-[#1e1b4b] dark:text-white leading-none flex items-center gap-1">
@@ -142,8 +143,8 @@ const Header = () => {
                                 {isProfileOpen && (
                                     <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl shadow-indigo-500/10 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2 z-[70]">
                                         <div className="px-4 py-3 mb-1 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.displayName || 'No Name'}</p>
-                                            <p className="text-[10px] text-indigo-500 truncate font-bold">{user.email}</p>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.displayName || 'No Name'}</p>
+                                            <p className="text-[10px] text-indigo-500 truncate font-bold">{user?.email}</p>
                                         </div>
 
                                         {(userRole === 'admin' || userRole === 'event_manager') && (

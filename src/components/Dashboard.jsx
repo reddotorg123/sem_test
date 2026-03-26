@@ -655,14 +655,14 @@ const Dashboard = () => {
                                         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex flex-col h-[300px]">
                                             <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 custom-scrollbar">
                                                 {messages.length > 0 ? messages.map((msg, i) => (
-                                                    <div key={msg.id || i} className={cn("flex flex-col", msg.senderId === user.uid ? "items-end" : "items-start")}>
+                                                    <div key={msg.id || i} className={cn("flex flex-col", msg.senderId === user?.uid ? "items-end" : "items-start")}>
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{msg.senderName || 'Unknown'}</span>
                                                             <span className="text-[7px] text-slate-500">{format(new Date(msg.timestamp), 'HH:mm')}</span>
                                                         </div>
                                                         <div className={cn(
                                                             "px-4 py-2 rounded-2xl text-xs font-bold max-w-[85%] break-words",
-                                                            msg.senderId === user.uid ? "bg-indigo-600 text-white rounded-tr-none" : "bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 rounded-tl-none shadow-sm"
+                                                            msg.senderId === user?.uid ? "bg-indigo-600 text-white rounded-tr-none" : "bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-100 dark:border-slate-800 rounded-tl-none shadow-sm"
                                                         )}>
                                                             {msg.content}
                                                         </div>
