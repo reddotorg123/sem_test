@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Link as LinkIcon, CheckCircle2, Copy, Plus, Loader2, Trash2, ShieldCheck, Briefcase } from 'lucide-react';
+import { X, Users, Link as LinkIcon, CheckCircle2, Copy, Plus, Loader2, Trash2, ShieldCheck, Briefcase, Sparkles, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
