@@ -66,11 +66,12 @@ const JoinTeam = () => {
         // Public users ARE allowed to join teams (they become 'member')
         // if (userRole === 'public') { ... removed this barrier ... }
 
-        if (userRole === 'subscriber' || userRole === 'team_leader' || userRole === 'admin') {
+        // Removed strictly blocking subscribers. They can join others, but their role becomes 'member'.
+        /* if (userRole === 'subscriber' || userRole === 'team_leader' || userRole === 'admin') {
             setErrorMsg("You are already a Team Leader or Admin. You cannot join another team. You must first downgrade your role to 'public' to join a different team.");
             setStatus('error');
             return;
-        }
+        } */
 
         if (!resolvedTeamId) {
             setErrorMsg("Could not verify team. Please try again.");
