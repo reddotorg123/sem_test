@@ -16,7 +16,16 @@ export class EventDatabase extends Dexie {
     constructor() {
         super('CollegeEventManager');
 
+        // Version 1: Original schema
         this.version(1).stores({
+            events: '++id, collegeName, eventName, eventType, registrationDeadline, startDate, endDate, status, priorityScore, createdAt, contact1, contact2, leader, prizeWon, isShortlisted, serverId, teamId, createdBy',
+            colleges: '++id, name, location, pastEvents',
+            notes: '++id, eventId, content, createdAt',
+            settings: 'key, value'
+        });
+
+        // Version 2: Added teamEventData table for team-specific event tracking
+        this.version(2).stores({
             events: '++id, collegeName, eventName, eventType, registrationDeadline, startDate, endDate, status, priorityScore, createdAt, contact1, contact2, leader, prizeWon, isShortlisted, serverId, teamId, createdBy',
             teamEventData: '++id, teamId, eventId, status, prizeWon, isShortlisted, updatedAt',
             colleges: '++id, name, location, pastEvents',
@@ -237,13 +246,18 @@ export const updateTeamEventStatus = async (eventId, updates) => {
         return;
     }
 
-    const existing = await db.teamEventData.where({ teamId, eventId }).first();
-    const now = new Date().toISOString();
-    
-    if (existing) {
-        await db.teamEventData.update(existing.id, { ...updates, updatedAt: now });
-    } else {
-        await db.teamEventData.add({ ...updates, teamId, eventId, updatedAt: now });
+    try {
+        const existing = await db.teamEventData.where({ teamId, eventId }).first();
+        const now = new Date().toISOString();
+        
+        if (existing) {
+            await db.teamEventData.update(existing.id, { ...updates, updatedAt: now });
+        } else {
+            await db.teamEventData.add({ ...updates, teamId, eventId, updatedAt: now });
+        }
+    } catch (e) {
+        console.error('[DB] teamEventData write failed (table may not exist yet):', e.message);
+        return;
     }
 
     if (cloudProvider === 'firestore') {
@@ -265,7 +279,14 @@ export const getMergedEvents = async () => {
     
     if (!teamId) return globalEvents;
 
-    const teamStats = await db.teamEventData.where('teamId').equals(teamId).toArray();
+    let teamStats = [];
+    try {
+        teamStats = await db.teamEventData.where('teamId').equals(teamId).toArray();
+    } catch (e) {
+        console.warn('[DB] teamEventData query failed (table may not exist yet):', e.message);
+        return globalEvents;
+    }
+
     const statsMap = new Map(teamStats.map(s => [s.eventId, s]));
 
     const merged = globalEvents.map(event => {
