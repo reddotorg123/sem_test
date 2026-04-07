@@ -232,12 +232,14 @@ function App() {
 
                 // 1. Sync Shared Events Catalog
                 unsubscribeGlobal = subscribeToGlobalEvents(
+                    teamId,
                     async (remoteEvents) => {
                         const { bulkImportEvents } = await import('./db');
                         await bulkImportEvents(remoteEvents, true);
                     },
                     (error) => console.error('[Sync] Global events failed:', error)
                 );
+
 
                 // 2. Sync Private Team Performance Data
                 if (teamId) {

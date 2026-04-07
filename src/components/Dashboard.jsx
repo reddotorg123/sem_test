@@ -215,18 +215,39 @@ const Dashboard = () => {
         return () => clearTimeout(timer);
     }, [stats.total, stats.winCount, stats.totalPrize, user?.uid, teamId]);
 
-    const handleLeaveTeam = async () => {
-        if (!window.confirm("Are you sure you want to leave this team? You will return to your personal workspace.")) return;
+    const handleLeaveTeam = async (isPromotion = false) => {
+        const actionText = isPromotion ? "promote yourself to Leader" : "leave this team";
+        const confirmMsg = isPromotion 
+            ? "Are you sure you want to promote yourself to Leader? You will leave your current team and establish your own tactical workspace."
+            : "Are you sure you want to leave this team? You will return to your personal workspace.";
+
+        if (!window.confirm(confirmMsg)) return;
+
         try {
             await leaveTeam(user.uid);
+            
             // Update local state via store
             useAppStore.getState().setTeamId(user.uid);
-            useAppStore.getState().setUserRole('public');
             
-            // Re-sync with Firebase if listener is active
-            window.location.reload(); 
+            // If they are promoting, they might want to stay as subscriber if they paid, 
+            // otherwise 'public' is a safe default for a new leader
+            const currentRole = useAppStore.getState().userRole;
+            const targetRole = (currentRole === 'admin' || currentRole === 'event_manager' || currentRole === 'subscriber') 
+                ? currentRole 
+                : 'team_leader';
+            
+            useAppStore.getState().setUserRole(targetRole);
+            
+            showNotification(isPromotion ? "Self-Promotion Successful" : "Deployment Rescinded", {
+                body: isPromotion ? "You are now the leader of your own tactical unit." : "You have returned to your personal workspace.",
+                icon: '/pwa-192x192.png'
+            });
+
+            // Re-sync with Firebase 
+            setTimeout(() => window.location.reload(), 1000); 
         } catch (err) {
-            alert("Failed to leave team: " + err.message);
+            console.error("Action failed", err);
+            alert(`Failed to ${actionText}: ` + err.message);
         }
     };
 
@@ -544,13 +565,19 @@ const Dashboard = () => {
 
                                 <div className="space-y-4 mt-6">
                                     {teamId && teamId !== user.uid ? (
-                                        /* Team Member View: Leave Option */
+                                        /* Team Member View: Leave/Promote Options */
                                         <div className="flex flex-col sm:flex-row gap-3">
                                             <button 
-                                                onClick={handleLeaveTeam}
-                                                className="flex-1 py-4 bg-rose-50 dark:bg-rose-900/40 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center justify-center gap-2 border border-rose-100 dark:border-rose-800"
+                                                onClick={() => handleLeaveTeam(false)}
+                                                className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
                                             >
                                                 <LogOut size={14} /> Leave Team
+                                            </button>
+                                            <button 
+                                                onClick={() => handleLeaveTeam(true)}
+                                                className="flex-1 py-4 bg-amber-50 dark:bg-amber-900/40 text-amber-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2 border border-amber-100 dark:border-amber-800"
+                                            >
+                                                <Crown size={14} /> Promote to Leader
                                             </button>
                                             <button 
                                                 onClick={() => setIsChatOpen(!isChatOpen)}
@@ -561,7 +588,7 @@ const Dashboard = () => {
                                                         : "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 hover:bg-indigo-100 border-indigo-100 dark:border-indigo-800"
                                                 )}
                                             >
-                                                <MessageSquare size={14} /> Team Intel
+                                                <MessageSquare size={14} /> Chat
                                             </button>
                                         </div>
                                     ) : (

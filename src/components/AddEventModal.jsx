@@ -163,7 +163,7 @@ const AddEventModal = () => {
             };
             await addEvent(eventData);
             closeModal('addEvent');
-            setFormData({ collegeName: '', eventName: '', eventType: EventType.HACKATHON, customEventType: '', registrationDeadline: '', startDate: '', endDate: '', prizeAmount: '', prizeWon: '', registrationFee: '', accommodation: false, location: '', isOnline: false, contactNumbers: '', posterUrl: '', posterBlob: null, website: '', registrationLink: '', description: '', teamSize: '1', teamName: '', eligibility: '', leader: '', members: '', contact1: '', contact2: '' });
+            setFormData({ collegeName: '', eventName: '', eventType: [EventType.HACKATHON], customEventType: '', registrationDeadline: '', startDate: '', endDate: '', prizeAmount: '', prizeWon: '', registrationFee: '', accommodation: false, location: '', isOnline: false, contactNumbers: '', posterUrl: '', posterBlob: null, website: '', registrationLink: '', description: '', teamSize: '1', teamName: '', eligibility: '', leader: '', members: '', contact1: '', contact2: '' });
         } catch (error) {
             alert(`CRITICAL ERROR: ${error.message}`);
         } finally {

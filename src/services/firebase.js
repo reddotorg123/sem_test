@@ -233,6 +233,24 @@ export const subscribeToTeamMembers = (teamId, callback) => {
     return onSnapshot(q, (snapshot) => {
         const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         callback(members);
+
+        // Detect new members for Team Leader notification
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+                const newMember = change.doc.data();
+                // Avoid notifying about the user themselves or stale data
+                const ageInMs = new Date() - new Date(newMember.createdAt || new Date());
+                if (ageInMs < 2 * 60 * 1000 && newMember.uid !== auth?.currentUser?.uid) {
+                    import('../notifications').then(({ showNotification }) => {
+                        showNotification(`New Unit Member: ${newMember.displayName}`, {
+                            body: `${newMember.displayName} has joined your tactical unit.`,
+                            tag: `new-member-${change.doc.id}`,
+                            icon: '/pwa-192x192.png'
+                        });
+                    }).catch(err => console.error("Notification trigger fail:", err));
+                }
+            }
+        });
     });
 };
 
@@ -345,18 +363,26 @@ export const createPaymentRequest = async (requestData) => {
  * FIRESTORE: Sets up a real-time listener for ALL global events.
  * This is the shared catalog of events created by Admins.
  */
-export const subscribeToGlobalEvents = (callback, onError) => {
+export const subscribeToGlobalEvents = (teamId, callback, onError) => {
     if (!db) return null;
     const eventsRef = collection(db, "events");
-    const q = query(eventsRef, orderBy("createdAt", "desc"));
+    
+    // Fetch events where teamId is null (Global) OR teamId matches current team
+    // Firestore doesn't support 'OR' with 'where' directly in simple queries like this easily,
+    // so we handle the union client-side or use separate queries.
+    // Given the project scale, we'll fetch Global & Team events.
+    const q = (teamId && teamId !== 'public')
+        ? query(eventsRef, where("teamId", "in", [null, teamId]))
+        : query(eventsRef, where("teamId", "==", null));
 
     return onSnapshot(q, (snapshot) => {
         const events = snapshot.docs.map(doc => ({
             ...doc.data(),
             serverId: doc.id
         }));
-        console.log(`[Firebase] Global Events Updated: ${events.length}`);
+        console.log(`[Firebase] Events Subscribed: ${events.length} (Global + Team ${teamId})`);
         callback(events);
+
 
         // Detect newly added events for Global Notifications
         snapshot.docChanges().forEach((change) => {
@@ -364,13 +390,17 @@ export const subscribeToGlobalEvents = (callback, onError) => {
                 const newEvent = change.doc.data();
                 // Only notify if event was created in the last 2 minutes
                 // (Prevents spamming notifications on initial load of all historical events)
-                if (newEvent.createdAt) {
-                    const ageInMs = new Date() - new Date(newEvent.createdAt);
-                    if (ageInMs < 2 * 60 * 1000) {
+                if (newEvent.createdAt || newEvent.updatedAt) {
+                    const eventTime = new Date(newEvent.createdAt || newEvent.updatedAt);
+                    const ageInMs = new Date() - eventTime;
+                    
+                    // Relax the check slightly to 5 minutes to ensure no lost signals
+                    if (ageInMs < 5 * 60 * 1000) {
                         import('../notifications').then(({ showNotification }) => {
-                            showNotification(`New Event Alert: ${newEvent.eventName}`, {
-                                body: `A new event is available at ${newEvent.collegeName}`,
-                                tag: `global-event-${change.doc.id}`
+                            showNotification(`Mission Update: ${newEvent.eventName}`, {
+                                body: `Deployment at ${newEvent.collegeName}. Check intel now.`,
+                                tag: `global-event-${change.doc.id}`,
+                                icon: '/pwa-192x192.png'
                             });
                         }).catch(err => console.error("Notification trigger fail:", err));
                     }

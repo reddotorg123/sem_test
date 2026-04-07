@@ -23,8 +23,20 @@ export const resolveImageUrl = (url) => {
 
     return url;
 };
-export const getDefaultPoster = (eventName, seed = '') => {
-    // Returning null enforces the application to use the safe, abstract gradient "No Poster" fallback
-    // Instead of using misleading placeholder images with text.
-    return null;
+export const getDefaultPoster = (eventType, seed = '') => {
+    const posters = {
+        'Hackathon': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=2070&auto=format&fit=crop',
+        'Workshop': 'https://images.unsplash.com/photo-1540317580384-e5d43867cbc6?q=80&w=1974&auto=format&fit=crop',
+        'Contest': 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071&auto=format&fit=crop',
+        'Paper Presentation': 'https://images.unsplash.com/photo-1475721027187-dfb367046420?q=80&w=2070&auto=format&fit=crop',
+        'Project Expo': 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop',
+        'Seminar': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop',
+        'Conference': 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=2069&auto=format&fit=crop',
+        'Other': 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?q=80&w=2012&auto=format&fit=crop'
+    };
+
+    // Use specific poster or fallback based on array/string input
+    const type = Array.isArray(eventType) ? eventType[0] : eventType;
+    return posters[type] || posters['Other'];
 };
+

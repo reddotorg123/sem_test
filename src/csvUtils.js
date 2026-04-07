@@ -291,40 +291,43 @@ export const importCSV = async (file, customMapping = null) => {
 
 // Export events to CSV
 export const exportToCSV = (events) => {
-    const csv = Papa.unparse(events, {
-        header: true,
-        columns: [
-            'College Name',
-            'Event Name',
-            'Event Type',
-            'Registration Deadline',
-            'Start Date',
-            'End Date',
-            'Prize Amount',
-            'Registration Fee',
-            'Accommodation',
-            'Location',
-            'Online',
-            'Status',
-            'Priority Score',
-            'Website',
-            'Registration Link',
-            'Description',
-            'Team Size',
-            'Eligibility',
-            'Leader',
-            'Members',
-            'No of Teams',
-            'Prize Won',
-            'Contact 1',
-            'Contact 2',
-            'Poster URL',
-            'Contact Numbers'
-        ]
+    // Map the camelCase keys to the Spaced Title headers expected by the column list
+    const mappedData = events.map(e => ({
+        'College Name': e.collegeName,
+        'Event Name': e.eventName,
+        'Event Type': Array.isArray(e.eventType) ? e.eventType.join(', ') : e.eventType,
+        'Registration Deadline': e.registrationDeadline instanceof Date ? e.registrationDeadline.toLocaleDateString() : e.registrationDeadline,
+        'Start Date': e.startDate instanceof Date ? e.startDate.toLocaleDateString() : e.startDate,
+        'End Date': e.endDate instanceof Date ? e.endDate.toLocaleDateString() : e.endDate,
+        'Prize Amount': e.prizeAmount,
+        'Registration Fee': e.registrationFee,
+        'Accommodation': e.accommodation ? 'Yes' : 'No',
+        'Location': e.location,
+        'Online': e.isOnline ? 'Yes' : 'No',
+        'Status': e.status,
+        'Priority Score': e.priorityScore,
+        'Website': e.website,
+        'Registration Link': e.registrationLink,
+        'Description': e.description,
+        'Team Size': e.teamSize,
+        'Eligibility': e.eligibility,
+        'Leader': e.leader,
+        'Members': e.members,
+        'No of Teams': e.noOfTeams,
+        'Prize Won': e.prizeWon,
+        'Contact 1': e.contact1,
+        'Contact 2': e.contact2,
+        'Poster URL': e.posterUrl,
+        'Contact Numbers': Array.isArray(e.contactNumbers) ? e.contactNumbers.join(', ') : e.contactNumbers
+    }));
+
+    const csv = Papa.unparse(mappedData, {
+        header: true
     });
 
     return csv;
 };
+
 
 // Download CSV file
 export const downloadCSV = (csvContent, filename = 'events.csv') => {

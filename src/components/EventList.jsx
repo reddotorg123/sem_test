@@ -61,7 +61,7 @@ const TableView = React.memo(({ events }) => {
                                 <td className="px-8 py-6 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{event.collegeName}</td>
                                 <td className="px-8 py-6">
                                     <span className="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] text-slate-500 shadow-sm">
-                                        {event.eventType}
+                                        {Array.isArray(event.eventType) ? event.eventType.join(' • ') : event.eventType}
                                     </span>
                                 </td>
                                 <td className="px-8 py-6">
@@ -152,7 +152,12 @@ const EventList = () => {
                 filtered = filtered.filter(e => e.status === f.status);
             }
         }
-        if (f.eventType !== 'all') filtered = filtered.filter(e => e.eventType === f.eventType);
+        if (f.eventType !== 'all') {
+            filtered = filtered.filter(e => {
+                if (Array.isArray(e.eventType)) return e.eventType.includes(f.eventType);
+                return e.eventType === f.eventType;
+            });
+        }
         if (f.search) {
             const q = f.search.toLowerCase();
             filtered = filtered.filter(e =>
