@@ -12,7 +12,7 @@ import { getTeamMembers, leaveTeam, sendTeamMessage, subscribeToTeamMessages, up
 import { useRef } from 'react';
 import { showNotification } from '../notifications';
 
-const StatCard = ({ title, value, icon: Icon, color, delay, trend, onClick }) => {
+const StatCard = React.memo(({ title, value, icon: Icon, color, delay, trend, onClick }) => {
     // Mapping of possible colors to explicit Tailwind classes (SEM Theme)
     const colorClasses = {
         'bg-indigo-500': {
@@ -70,7 +70,7 @@ const StatCard = ({ title, value, icon: Icon, color, delay, trend, onClick }) =>
             </div>
         </motion.div>
     );
-};
+});
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -215,7 +215,7 @@ const Dashboard = () => {
         return () => clearTimeout(timer);
     }, [stats.total, stats.winCount, stats.totalPrize, user?.uid, teamId]);
 
-    const handleLeaveTeam = async () => {
+    const handleLeaveTeam = React.useCallback(async () => {
         if (!window.confirm("Are you sure you want to leave this team? You will return to your personal workspace.")) return;
         try {
             await leaveTeam(user.uid);
@@ -228,9 +228,9 @@ const Dashboard = () => {
         } catch (err) {
             alert("Failed to leave team: " + err.message);
         }
-    };
+    }, [user.uid]);
 
-    const handleSendMessage = async (e) => {
+    const handleSendMessage = React.useCallback(async (e) => {
         e.preventDefault();
         if (!newMessage.trim()) return;
         try {
@@ -239,9 +239,9 @@ const Dashboard = () => {
         } catch (err) {
             console.error("Message failed", err);
         }
-    };
+    }, [teamId, user.uid, user.displayName, newMessage]);
 
-    const handleUpdatePosition = async (memberId) => {
+    const handleUpdatePosition = React.useCallback(async (memberId) => {
         try {
             await updateMemberPosition(memberId, newPosition);
             setEditingMember(null);
@@ -251,7 +251,7 @@ const Dashboard = () => {
         } catch (err) {
             alert("Failed to update position: " + err.message);
         }
-    };
+    }, [teamId, newPosition]);
 
     const containerVariants = {
         hidden: { opacity: 0 },

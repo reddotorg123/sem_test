@@ -120,7 +120,7 @@ export const createEvent = ({
 
     const event = {
         id,
-        serverId: serverId || crypto.randomUUID(),
+        serverId: serverId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36)),
         collegeName,
         eventName,
         eventType,
@@ -256,8 +256,8 @@ export const updateTeamEventStatus = async (eventId, updates) => {
             await db.teamEventData.add({ ...updates, teamId, eventId, updatedAt: now });
         }
     } catch (e) {
-        console.error('[DB] teamEventData write failed (table may not exist yet):', e.message);
-        return;
+        console.error('[DB] teamEventData write failed:', e);
+        throw e; // Re-throw to allow component-level handling
     }
 
     if (cloudProvider === 'firestore') {
@@ -444,14 +444,32 @@ export const bulkImportTeamEventData = async (statsMap, teamId) => {
  * UTILITY: Run maintenance (update statuses of all events based on current time)
  */
 export const updateAllEventStatuses = async () => {
-    const events = await db.events.toArray();
-    for (const event of events) {
-        if (MANUAL_STATUSES.includes(event.status)) continue;
-        const newStatus = calculateStatus(event.registrationDeadline, event.startDate, event.endDate);
-        const newScore = calculatePriorityScore(event);
-        if (newStatus !== event.status || newScore !== event.priorityScore) {
-            await db.events.update(event.id, { status: newStatus, priorityScore: newScore, updatedAt: new Date() });
+    try {
+        const events = await db.events.toArray();
+        const updates = [];
+        const now = new Date();
+
+        for (const event of events) {
+            if (MANUAL_STATUSES.includes(event.status)) continue;
+            const newStatus = calculateStatus(event.registrationDeadline, event.startDate, event.endDate);
+            const newScore = calculatePriorityScore(event);
+            
+            if (newStatus !== event.status || newScore !== event.priorityScore) {
+                updates.push({
+                    ...event,
+                    status: newStatus,
+                    priorityScore: newScore,
+                    updatedAt: now
+                });
+            }
         }
+
+        if (updates.length > 0) {
+            await db.events.bulkPut(updates);
+            console.log(`[DB] Bulk Status Sync: Updated ${updates.length} events.`);
+        }
+    } catch (error) {
+        console.error('[DB] Maintenance update failed:', error);
     }
 };
 

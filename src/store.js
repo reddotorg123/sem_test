@@ -68,14 +68,6 @@ export const useAppStore = create(
             setIsRoleVerified: (status) => set({ isRoleVerified: status }),
 
             setUser: (user) => {
-                if (user) {
-                    localStorage.setItem('sem_user', JSON.stringify(user));
-                } else {
-                    localStorage.removeItem('sem_user');
-                    localStorage.removeItem('sem_user_role'); // Clear role on logout
-                    localStorage.removeItem('sem_team_id');
-                    localStorage.removeItem('sem_user_profile');
-                }
                 set({ 
                     user, 
                     userRole: user ? get().userRole : null, 
@@ -85,29 +77,14 @@ export const useAppStore = create(
             },
 
             setUserProfile: (profile) => {
-                if (profile) {
-                    localStorage.setItem('sem_user_profile', JSON.stringify(profile));
-                } else {
-                    localStorage.removeItem('sem_user_profile');
-                }
                 set({ userProfile: profile });
             },
 
             setUserRole: (role) => {
-                if (role) {
-                    localStorage.setItem('sem_user_role', role);
-                } else {
-                    localStorage.removeItem('sem_user_role');
-                }
                 set({ userRole: role });
             },
 
             setTeamId: (teamId) => {
-                if (teamId) {
-                    localStorage.setItem('sem_team_id', teamId);
-                } else {
-                    localStorage.removeItem('sem_team_id');
-                }
                 set({ teamId });
             },
 
