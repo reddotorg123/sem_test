@@ -40,8 +40,14 @@ service cloud.firestore {
       // READ: Authenticated users can read the catalog.
       allow read: if isSignedIn(); 
 
-      // CREATE: Everyone can inject events (validated client-side as global/local).
-      allow create: if isSignedIn();
+      // CREATE: Only Admin/Manager can create global events (no teamId).
+      // Everyone else can create team events but ONLY for their own team.
+      allow create: if isSignedIn() && (
+        isAdmin() || isManager() || (
+          request.resource.data.teamId != null && 
+          request.resource.data.teamId == getTeamId()
+        )
+      );
 
       // UPDATE/DELETE: Only Admins/Managers OR the creator can modify.
       allow update, delete: if isAdmin() || isManager() || (resource != null && resource.data.createdBy == request.auth.uid);
@@ -61,8 +67,9 @@ service cloud.firestore {
       // UPDATE: (1) Admin/Manager Console (2) User Self-Service (3) Team Leader Updates Member Position
       allow update: if isAdmin() || (
                       isOwner(userId) && (
-                        // Protect critical roles
-                        (request.resource.data.role == resource.data.role || request.resource.data.role in ["public", "member", "subscriber"]) &&
+                        // Role Protection: Self-upgrade is strictly forbidden.
+                        // Only let users stay at their current role or lower it to 'public'.
+                        (request.resource.data.role == resource.data.role || request.resource.data.role == "public") &&
                         (request.resource.data.email == resource.data.email)
                       )
                     ) || (
@@ -141,13 +148,15 @@ service cloud.firestore {
      * WRITE: Only members of the target team can create messages.
      */
     match /team_messages/{messageId} {
-      function isMemberOfTeam(tid) {
-        return tid == request.auth.uid || tid == getTeamId();
-      }
-      
-      // Allow list queries (resource is null during collection queries)
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isMemberOfTeam(request.resource.data.teamId);
+      allow read: if isSignedIn() && (
+        resource.data.teamId == request.auth.uid || 
+        resource.data.teamId == getTeamId() || 
+        isAdmin()
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.teamId == request.auth.uid || 
+        request.resource.data.teamId == getTeamId()
+      );
       allow update, delete: if isAdmin() || (resource != null && resource.data.senderId == request.auth.uid);
     }
   }
