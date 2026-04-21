@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, memo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, EventType, EventStatus, getAllEvents } from '../db';
@@ -6,6 +6,7 @@ import { useAppStore } from '../store';
 import EventCard from './EventCard';
 import { Search, Filter, SortDesc, SlidersHorizontal, ArrowUpDown, Table as TableIcon, LayoutGrid, FileSpreadsheet, ChevronRight, MapPin, Calendar, Clock, Trophy, Zap, ArrowUp, Heart, Terminal, Cpu, Database, Binary, Shield, ExternalLink, Globe } from 'lucide-react';
 import { cn } from '../utils';
+import { FixedSizeList as List } from 'react-window';
 import { format, isSameDay } from 'date-fns';
 import { exportToCSV, downloadCSV } from '../csvUtils';
 
@@ -46,7 +47,31 @@ const TableView = React.memo(({ events }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {events.map((event) => (
+                        {viewMode === 'list' ? (
+                <List
+                    height={600}
+                    itemCount={events.length}
+                    itemSize={80}
+                    width='100%'
+                >
+                    {({ index, style }) => {
+                        const event = events[index];
+                        return (
+                            <div style={style} key={event.id} onClick={() => handleRowClick(event.id)} className="border-b ...">
+                                {/* Render row similar to existing markup */}
+                                <td className="px-8 py-6">{event.eventName}</td>
+                                {/* ... other cells ... */}
+                            </div>
+                        );
+                    }}
+                </List>
+            ) : (
+                events.map((event) => (
+                    <tr key={event.id} onClick={() => handleRowClick(event.id)} className="border-b ...">
+                        {/* existing row markup */}
+                    </tr>
+                ))
+            )
                             <tr
                                 key={event.id}
                                 onClick={() => handleRowClick(event.id)}
@@ -128,7 +153,16 @@ const EventList = () => {
     const [showScrollTop, setShowScrollTop] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => setShowScrollTop(window.scrollY > 300);
+        const debounce = (fn, delay) => {
+            let timer;
+            return () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    fn();
+                }, delay);
+            };
+        };
+        const handleScroll = debounce(() => setShowScrollTop(window.scrollY > 300), 200);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -470,4 +504,4 @@ const EventList = () => {
     );
 };
 
-export default EventList;
+export default memo(EventList);
